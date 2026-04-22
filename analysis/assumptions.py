@@ -82,18 +82,18 @@ def _mauchly(matrix):
         .melt(id_vars="site", var_name="condition", value_name="value")
     )
     try:
-        res = pg.sphericity(
+        spher, W_raw, chi2_raw, dof_raw, pval_raw = pg.sphericity(
             data=long_df,
             dv="value",
             within="condition",
             subject="site",
             method="mauchly",
         )
-        W = float(res.W) if res.W is not None else float("nan")
-        chi2 = float(res.chi2) if res.chi2 is not None else float("nan")
-        dof = float(res.dof) if res.dof is not None else float("nan")
-        pval = float(res.pval) if res.pval is not None else float("nan")
-        spher = bool(res.spher)
+        W = float(W_raw) if W_raw is not None else float("nan")
+        chi2 = float(chi2_raw) if chi2_raw is not None else float("nan")
+        dof = float(dof_raw) if dof_raw is not None else float("nan")
+        pval = float(pval_raw) if pval_raw is not None else float("nan")
+        spher = bool(spher)
         if not _mauchly_plausible(W, chi2, dof, pval):
             return {
                 "status": "noncomputable",
