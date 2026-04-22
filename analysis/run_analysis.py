@@ -106,10 +106,17 @@ def main():
     )
     (out_dir / "analysis_report.md").write_text(report_md)
 
+    a2_interaction_p = (
+        f"{a2['interaction_primary']['p']:.4g}"
+        if a2["interaction_primary"] is not None
+        and math.isfinite(a2["interaction_primary"]["p"])
+        else "NA"
+    )
+
     print(
         f"analysis complete — {len(df)} trial rows; "
         f"A1 path={a1['path']}, significant={a1['omnibus'].get('significant')}; "
-        f"A2 interaction p={a2['interaction_primary']['p']:.4g}; "
+        f"A2 interaction p={a2_interaction_p}; "
         f"A3 mode={a3['a3_mode']}; "
         f"bootstrap iters={BOOTSTRAP_ITERS}, CI={BOOTSTRAP_CI}, seed={a3['bootstrap']['seed']}."
     )

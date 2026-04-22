@@ -111,6 +111,8 @@ Primary quantity: the `condition * site` interaction F-test. Treated as explorat
 | Residual | 0.067577 | 220.0 | 3.072e-04 | NaN | NaN | NaN |
 
 **Interaction test:** F(12.0, 220.0) = 1.152599, p = 0.3192, partial η² = 0.059150.
+- Significant at α = 0.05: **False**
+- Interpretation: No evidence that the condition effect depends on site; this supports the pooled framing used in A1.
 
 ## A3 — Condition-level repeatability (CV)
 

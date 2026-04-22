@@ -316,12 +316,37 @@ def run_a2(df):
                 entry[key] = float(val) if pd.notna(val) else float("nan")
         table.append(entry)
     interaction = next((e for e in table if e["source"] == "condition * site"), None)
+    residual = next((e for e in table if e["source"].casefold() == "residual"), None)
+    interaction_p = interaction["p"] if interaction is not None else float("nan")
+    interaction_assessable = interaction is not None and math.isfinite(interaction_p)
+    interaction_significant = bool(
+        interaction_assessable and interaction_p < OMNIBUS_ALPHA
+    )
+    if interaction_assessable:
+        interaction_interpretation = (
+            "Evidence that the condition effect depends on site (site-dependent performance)."
+            if interaction_significant
+            else "No evidence that the condition effect depends on site; this supports the pooled framing used in A1."
+        )
+    else:
+        interaction_interpretation = (
+            "Interaction term could not be interpreted from the ANOVA output."
+        )
     return {
         "metric": "weber",
         "unit_of_analysis": "trial",
         "n_obs": int(len(df)),
         "model": "two-way fixed-effects ANOVA: condition + site + condition:site",
+        "alpha": OMNIBUS_ALPHA,
         "interaction_primary": interaction,
+        "interaction_denominator_df": (
+            residual["df"]
+            if residual is not None and math.isfinite(residual["df"])
+            else None
+        ),
+        "interaction_primary_assessable": interaction_assessable,
+        "interaction_primary_significant": interaction_significant,
+        "interaction_interpretation": interaction_interpretation,
         "anova_table": table,
         "exploratory": True,
         "note": "A2 is exploratory given the single-subject design and 4 sites.",

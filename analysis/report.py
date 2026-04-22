@@ -273,14 +273,29 @@ def _a2_section(res):
         ["source", "SS", "df", "MS", "F", "p", "partial η²"], rows
     ))
     lines.append("")
-    inter = res["interaction_primary"]
+    inter = res.get("interaction_primary")
     if inter is not None:
+        df2 = res.get("interaction_denominator_df")
+        df2_text = str(df2) if df2 is not None else "—"
         lines.append(
             f"**Interaction test:** F({inter['df']}, "
-            f"{res['anova_table'][-1]['df']}) = {_fmt_num(inter['F'])}, "
+            f"{df2_text}) = {_fmt_num(inter['F'])}, "
             f"p = {_fmt_p(inter['p'])}, partial η² = {_fmt_num(inter['partial_eta_sq'])}."
         )
-        lines.append("")
+    else:
+        lines.append("- Interaction summary unavailable.")
+    assessable = res.get("interaction_primary_assessable", False)
+    if inter is not None and not assessable:
+        lines.append("- Interaction significance could not be assessed from the ANOVA output.")
+    if assessable:
+        significance_text = f"**{res.get('interaction_primary_significant', False)}**"
+    else:
+        significance_text = "**not assessable**"
+    lines.append(f"- Significant at α = {res.get('alpha', 0.05)}: {significance_text}")
+    lines.append(
+        f"- Interpretation: {res.get('interaction_interpretation', 'Interaction term could not be interpreted from the ANOVA output.')}"
+    )
+    lines.append("")
     return "\n".join(lines)
 
 
