@@ -2,6 +2,7 @@
 
 import math
 from itertools import combinations
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -67,7 +68,7 @@ def _rm_anova_path(matrix, sphericity_correction_applied):
         dv="value",
         within="condition",
         subject="site",
-        correction=True,
+        correction=cast(Any, True),
         detailed=True,
         effsize="np2",
     )
@@ -149,7 +150,7 @@ def _friedman_path(matrix):
             x = matrix[a].to_numpy()
             y = matrix[b].to_numpy()
             try:
-                w_res = stats.wilcoxon(x, y, zero_method="wilcox", alternative="two-sided")
+                w_res = cast(Any, stats.wilcoxon(x, y, zero_method="wilcox", alternative="two-sided"))
                 w_stat = float(w_res.statistic)
                 w_p = float(w_res.pvalue)
             except ValueError as exc:
