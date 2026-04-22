@@ -290,6 +290,11 @@ def _a3_section(res):
         f"Outcome: per-cell Weber CV (4 × 5 matrix of cell CVs from 12 trials each). "
         f"Mode: **{res['a3_mode']}**."
     )
+    lines.append(
+        f"Bootstrap: {res['bootstrap']['iterations']} iterations, "
+        f"{int(round(res['bootstrap']['ci'] * 100))}% CI, "
+        f"seed = `{res['bootstrap']['seed']}`."
+    )
     lines.append("")
     if res["unstable_cells"]:
         lines.append(
@@ -308,7 +313,10 @@ def _a3_section(res):
         lines.append(f"- Kendall's W: {_fmt_num(f['kendalls_w'])}")
         lines.append(f"- Significant at α = {f['alpha']}: **{f['significant']}**")
     lines.append("")
-    lines.append("### Per-condition CV with bootstrap 95% CIs")
+    lines.append(
+        f"### Per-condition CV with bootstrap "
+        f"{int(round(res['bootstrap']['ci'] * 100))}% CIs"
+    )
     lines.append("")
     rows = [
         [

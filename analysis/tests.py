@@ -10,8 +10,7 @@ import pingouin as pg
 from scipy import stats
 
 from assumptions import site_level_matrix
-from bootstrap import bootstrap_cv_cis, cv_matrix
-from loader import CONDITION_ORDER, SITE_ORDER
+from bootstrap import BOOTSTRAP_CI, BOOTSTRAP_ITERS, bootstrap_cv_cis, cv_matrix
 
 OMNIBUS_ALPHA = 0.05
 CI_LEVEL = 0.95
@@ -329,7 +328,7 @@ def run_a2(df):
     }
 
 
-def run_a3(df):
+def run_a3(df, bootstrap_seed):
     matrix, unstable = cv_matrix(df, metric="weber")
     any_unstable = len(unstable) > 0
     point_estimates = _condition_cv_point_estimates(matrix)
@@ -337,9 +336,15 @@ def run_a3(df):
         row["condition"]: row["cv_point_estimate"] for row in point_estimates
     }
 
-    bootstrap = bootstrap_cv_cis(df, metric="weber")
+    bootstrap = bootstrap_cv_cis(df, metric="weber", seed=bootstrap_seed)
     for row in bootstrap:
         row["cv_point_estimate"] = point_map[row["condition"]]
+
+    bootstrap_meta = {
+        "seed": int(bootstrap_seed),
+        "iterations": BOOTSTRAP_ITERS,
+        "ci": BOOTSTRAP_CI,
+    }
 
     if any_unstable:
         return {
@@ -348,6 +353,7 @@ def run_a3(df):
             "a3_mode": "descriptive",
             "fallback_reason": "unstable_cells_present",
             "unstable_cells": unstable,
+            "bootstrap": bootstrap_meta,
             "per_condition_cv": point_estimates,
             "cv_matrix": matrix.to_dict(),
             "bootstrap_cis": bootstrap,
@@ -374,6 +380,7 @@ def run_a3(df):
         "unit_of_analysis": "per-cell CV",
         "a3_mode": "inferential",
         "unstable_cells": unstable,
+        "bootstrap": bootstrap_meta,
         "per_condition_cv": point_estimates,
         "friedman": {
             "Q": Q,

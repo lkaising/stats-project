@@ -115,6 +115,7 @@ Primary quantity: the `condition * site` interaction F-test. Treated as explorat
 ## A3 — Condition-level repeatability (CV)
 
 Outcome: per-cell Weber CV (4 × 5 matrix of cell CVs from 12 trials each). Mode: **inferential**.
+Bootstrap: 1000 iterations, 95% CI, seed = `42`.
 
 - Friedman Q = 13.400000, df = 4.000000, p = 0.0095
 - Kendall's W: 0.837500

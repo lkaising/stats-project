@@ -7,7 +7,8 @@ sensitivity-check analyses on the single synthetic dataset produced by
 ## What it does
 
 - Reads `generator/output/synthetic_dataset.csv` (240 trial-level rows) and,
-  when present, `generator/output/parameters_used.json` for report metadata.
+  `generator/output/parameters_used.json` for report metadata and the required
+  bootstrap seed.
 - Runs assumption checks (Shapiro-Wilk per condition on site-aggregated means;
   Mauchly's sphericity on the 4 × 5 site-aggregated matrix) and records the
   fallback decisions.
@@ -26,9 +27,10 @@ sensitivity-check analyses on the single synthetic dataset produced by
   primary quantity; treated as exploratory.
 - **A3** — per-cell Weber CV (from the 12 trials per site × condition cell),
   Friedman across conditions with site as blocking factor, plus per-condition
-  bootstrap 95% CIs (1000 iterations, fixed seed). A numerical stability guard
-  (`CV_MEAN_EPS = 1e-6`) excludes near-zero-mean cells and routes the analysis
-  to descriptive mode if any cell is unstable.
+  bootstrap 95% CIs (1000 iterations, using the generator seed recorded in
+  `generator/output/parameters_used.json`). A numerical stability guard
+  (`CV_MEAN_EPS = 1e-6`) excludes near-zero-mean cells and routes the
+  analysis to descriptive mode if any cell is unstable.
 - **Michelson sensitivity check** — same pipeline as A1 on Michelson contrast,
   with a Weber-vs-Michelson ranking comparison.
 
@@ -47,6 +49,9 @@ From the project root, after the generator has been run at least once:
 python analysis/run_analysis.py
 ```
 
+This command requires `generator/output/parameters_used.json` to contain a
+valid integer `seed`.
+
 Outputs are written to `analysis/output/`.
 
 ## Outputs
@@ -63,7 +68,8 @@ Written to `analysis/output/`:
 - `a1_posthoc.csv` — the A1 post-hoc rows in tabular form.
 - `a2_results.json` — full two-way ANOVA table with partial η².
 - `a3_results.json` — A3 Friedman result (or descriptive fallback),
-  per-condition observed CV point estimates, CV matrix, and bootstrap CIs.
+  per-condition observed CV point estimates, CV matrix, bootstrap metadata,
+  and bootstrap CIs.
 - `a3_bootstrap_cis.csv` — per-condition observed CV point estimates with
   bootstrap 95% CIs.
 - `michelson_results.json` — Michelson sensitivity check, mirroring A1's

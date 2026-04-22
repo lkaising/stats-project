@@ -10,7 +10,6 @@ from loader import CONDITION_ORDER, SITE_ORDER
 CV_MEAN_EPS = 1e-6
 BOOTSTRAP_ITERS = 1000
 BOOTSTRAP_CI = 0.95
-BOOTSTRAP_SEED = 42
 
 
 def _cell_cv(values):
@@ -43,8 +42,11 @@ def bootstrap_cv_cis(
     metric="weber",
     iterations=BOOTSTRAP_ITERS,
     ci=BOOTSTRAP_CI,
-    seed=BOOTSTRAP_SEED,
+    seed=None,
 ):
+    if seed is None:
+        raise ValueError("bootstrap_cv_cis requires an explicit seed.")
+
     rng = np.random.default_rng(seed)
     cell_arrays = {}
     for site in SITE_ORDER:

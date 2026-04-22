@@ -2,12 +2,13 @@
 
 import json
 import math
+import sys
 
 import numpy as np
 import pandas as pd
 
 from assumptions import run_assumption_checks
-from bootstrap import BOOTSTRAP_CI, BOOTSTRAP_ITERS, BOOTSTRAP_SEED
+from bootstrap import BOOTSTRAP_CI, BOOTSTRAP_ITERS
 from loader import ensure_output_dir, load_dataset, load_parameters
 from report import render_report
 from tests import compare_rankings, run_a1, run_a2, run_a3, run_michelson
@@ -45,10 +46,31 @@ def _posthoc_dataframe(res):
     return pd.DataFrame(rows)
 
 
+def _resolve_bootstrap_seed(params):
+    seed = params.get("seed")
+    if isinstance(seed, bool) or seed is None:
+        raise RuntimeError(
+            "Analysis requires generator/output/parameters_used.json to contain a valid integer seed."
+        )
+    if isinstance(seed, int):
+        return seed
+    if isinstance(seed, float) and seed.is_integer():
+        return int(seed)
+    if isinstance(seed, str):
+        try:
+            return int(seed)
+        except ValueError:
+            pass
+    raise RuntimeError(
+        "Analysis requires generator/output/parameters_used.json to contain a valid integer seed."
+    )
+
+
 def main():
     out_dir = ensure_output_dir()
     df = load_dataset()
     params = load_parameters()
+    bootstrap_seed = _resolve_bootstrap_seed(params)
 
     assumptions = run_assumption_checks(df)
     _write_json(out_dir / "assumption_checks.json", assumptions)
@@ -60,7 +82,7 @@ def main():
     a2 = run_a2(df)
     _write_json(out_dir / "a2_results.json", a2)
 
-    a3 = run_a3(df)
+    a3 = run_a3(df, bootstrap_seed=bootstrap_seed)
     _write_json(out_dir / "a3_results.json", a3)
     pd.DataFrame(a3["bootstrap_cis"]).to_csv(out_dir / "a3_bootstrap_cis.csv", index=False)
 
@@ -89,9 +111,13 @@ def main():
         f"A1 path={a1['path']}, significant={a1['omnibus'].get('significant')}; "
         f"A2 interaction p={a2['interaction_primary']['p']:.4g}; "
         f"A3 mode={a3['a3_mode']}; "
-        f"bootstrap iters={BOOTSTRAP_ITERS}, CI={BOOTSTRAP_CI}, seed={BOOTSTRAP_SEED}."
+        f"bootstrap iters={BOOTSTRAP_ITERS}, CI={BOOTSTRAP_CI}, seed={a3['bootstrap']['seed']}."
     )
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
