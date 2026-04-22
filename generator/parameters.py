@@ -6,7 +6,7 @@ from typing import Literal, Mapping
 
 SUBJECT_ID = "S01"
 N_TRIALS = 12
-SEED = 42
+SEED = 123
 
 Site = Literal["dorsal_hand_L", "dorsal_hand_R", "antecubital_L", "antecubital_R"]
 Wavelength = Literal[850, 940, 1050]
