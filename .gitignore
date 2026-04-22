@@ -1,0 +1,18 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Editor / OS cruft
+.DS_Store
+.vscode/
+.idea/
+.claude/
+
+# Generator outputs — keep only the synthetic dataset, ignore the rest.
+generator/output/*
+!generator/output/
+!generator/output/synthetic_dataset.csv
+
+# Notes and materials from the plan phase, which are not intended to be shared.
+plan-materials/
