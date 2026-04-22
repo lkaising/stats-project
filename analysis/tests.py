@@ -24,6 +24,25 @@ def _matrix_to_long(matrix):
     )
 
 
+def _float_or_nan(value):
+    return float(value) if pd.notna(value) else float("nan")
+
+
+def _row_value(row, candidates):
+    for col in candidates:
+        if col in row.index:
+            return _float_or_nan(row[col])
+    return float("nan")
+
+
+def _source_row(table, source_name, fallback_index):
+    if "Source" in table.columns:
+        matches = table["Source"].astype(str).str.casefold() == source_name.casefold()
+        if matches.any():
+            return table.loc[matches].iloc[0]
+    return table.iloc[fallback_index]
+
+
 def _condition_means_with_ci(matrix):
     """t-based 95% CI on the per-condition mean across the 4 site-level values."""
     n = matrix.shape[0]
@@ -72,14 +91,17 @@ def _rm_anova_path(matrix, sphericity_correction_applied):
         detailed=True,
         effsize="np2",
     )
-    row = aov.iloc[0]
-    F = float(row["F"])
-    ddof1 = float(row["ddof1"])
-    ddof2 = float(row["ddof2"])
-    p_unc = float(row["p-unc"])
-    p_gg = float(row["p-GG-corr"]) if "p-GG-corr" in aov.columns else float("nan")
-    eps_gg = float(row["eps"]) if "eps" in aov.columns else float("nan")
-    np2 = float(row["np2"]) if "np2" in aov.columns else float("nan")
+    row = _source_row(aov, "condition", 0)
+    error_row = _source_row(aov, "error", 1) if len(aov) > 1 else None
+    F = _row_value(row, ("F",))
+    ddof1 = _row_value(row, ("ddof1", "DF"))
+    ddof2 = _row_value(row, ("ddof2",))
+    if math.isnan(ddof2) and error_row is not None:
+        ddof2 = _row_value(error_row, ("ddof2", "DF"))
+    p_unc = _row_value(row, ("p_unc", "p-unc"))
+    p_gg = _row_value(row, ("p_GG_corr", "p-GG-corr"))
+    eps_gg = _row_value(row, ("eps",))
+    np2 = _row_value(row, ("np2",))
     p_reported = p_gg if sphericity_correction_applied else p_unc
     significant = bool(p_reported < OMNIBUS_ALPHA)
 
