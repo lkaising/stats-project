@@ -311,15 +311,7 @@ def _a3_section(res):
         f"seed = `{res['bootstrap']['seed']}`."
     )
     lines.append("")
-    if res["unstable_cells"]:
-        lines.append(
-            f"- Unstable cells (|cell mean| < CV_MEAN_EPS = 1e-6): {res['unstable_cells']}"
-        )
-        lines.append(
-            "- Friedman test was not run; per the locked fallback, only "
-            "per-condition bootstrap CIs on CV are reported."
-        )
-    else:
+    if res["a3_mode"] == "inferential":
         f = res["friedman"]
         lines.append(
             f"- Friedman Q = {_fmt_num(f['Q'])}, df = {_fmt_num(f['dof'])}, "
@@ -327,6 +319,27 @@ def _a3_section(res):
         )
         lines.append(f"- Kendall's W: {_fmt_num(f['kendalls_w'])}")
         lines.append(f"- Significant at α = {f['alpha']}: **{f['significant']}**")
+    else:
+        lines.append("- Friedman test was not run.")
+        reason = res.get("fallback_reason")
+        if reason == "unstable_cells_present":
+            lines.append(
+                "- Reason: unstable site × condition CV cells were detected, "
+                "so A3 is reported descriptively per the locked fallback."
+            )
+        elif reason == "fewer_than_four_usable_sites":
+            lines.append(
+                f"- Reason: fewer than four usable sites were available for the "
+                f"site-blocked comparison (usable sites = {res.get('usable_site_count', 'NA')})."
+            )
+        else:
+            lines.append(
+                "- Reason: descriptive fallback was triggered for A3."
+            )
+    if res["unstable_cells"]:
+        lines.append(
+            f"- Unstable cells (|cell mean| < CV_MEAN_EPS = 1e-6): {res['unstable_cells']}"
+        )
     lines.append("")
     lines.append(
         f"### Per-condition CV with bootstrap "

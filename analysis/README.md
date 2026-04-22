@@ -30,7 +30,9 @@ sensitivity-check analyses on the single synthetic dataset produced by
   bootstrap 95% CIs (1000 iterations, using the generator seed recorded in
   `generator/output/parameters_used.json`). A numerical stability guard
   (`CV_MEAN_EPS = 1e-6`) excludes near-zero-mean cells and routes the
-  analysis to descriptive mode if any cell is unstable.
+  analysis to descriptive mode if any cell is unstable. A3 is also reported
+  descriptively if fewer than four sites yield usable data for the
+  site-blocked comparison.
 - **Michelson sensitivity check** — same pipeline as A1 on Michelson contrast,
   with a Weber-vs-Michelson ranking comparison.
 

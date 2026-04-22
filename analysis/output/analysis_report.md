@@ -5,7 +5,7 @@
 - Input: `generator/output/synthetic_dataset.csv`
 - Rows (trials): `240`
 - Subject: `S01`
-- Seed: `42`
+- Seed: `123`
 - Sites: dorsal_hand_L, dorsal_hand_R, antecubital_L, antecubital_R
 - Conditions: 850, 940, 1050, 850_940, 940_1050
 
@@ -17,14 +17,14 @@
 
 | condition | W | p | violated |
 | --- | --- | --- | --- |
-| 850 | 0.908618 | 0.4751 | no |
-| 940 | 0.877462 | 0.3279 | no |
-| 1050 | 0.883383 | 0.3533 | no |
-| 850_940 | 0.896103 | 0.4120 | no |
-| 940_1050 | 0.733874 | 0.0270 | yes |
+| 850 | 0.948785 | 0.7085 | no |
+| 940 | 0.835463 | 0.1825 | no |
+| 1050 | 0.855304 | 0.2438 | no |
+| 850_940 | 0.928840 | 0.5876 | no |
+| 940_1050 | 0.820692 | 0.1448 | no |
 
-- Normality violated for any condition: **True**
-- Friedman fallback triggered: **True**
+- Normality violated for any condition: **False**
+- Friedman fallback triggered: **False**
 
 **Mauchly's test of sphericity (on the 4 × 5 site-aggregated matrix)**
 
@@ -38,14 +38,14 @@
 
 | condition | W | p | violated |
 | --- | --- | --- | --- |
-| 850 | 0.907888 | 0.4713 | no |
-| 940 | 0.875231 | 0.3187 | no |
-| 1050 | 0.881915 | 0.3469 | no |
-| 850_940 | 0.898457 | 0.4234 | no |
-| 940_1050 | 0.730924 | 0.0252 | yes |
+| 850 | 0.946133 | 0.6921 | no |
+| 940 | 0.874098 | 0.3140 | no |
+| 1050 | 0.851220 | 0.2301 | no |
+| 850_940 | 0.934652 | 0.6220 | no |
+| 940_1050 | 0.824603 | 0.1542 | no |
 
-- Normality violated for any condition: **True**
-- Friedman fallback triggered: **True**
+- Normality violated for any condition: **False**
+- Friedman fallback triggered: **False**
 
 **Mauchly's test of sphericity (on the 4 × 5 site-aggregated matrix)**
 
@@ -56,44 +56,45 @@
 ## A1 — Condition main effect (Weber)
 
 Outcome: weber. Unit of analysis: site-level mean (n=4 sites).
-Fallback used (RM ANOVA → Friedman): **True**.
+Fallback used (RM ANOVA → Friedman): **False**.
 
 ### Condition means (site-aggregated, 95% CI)
 
 | condition | site-level mean | sd | n_sites | 95% CI low | 95% CI high |
 | --- | --- | --- | --- | --- | --- |
-| 850 | 0.180673 | 0.001653 | 4 | 0.178043 | 0.183303 |
-| 940 | 0.119426 | 0.002806 | 4 | 0.114961 | 0.123890 |
-| 1050 | 0.079761 | 0.006678 | 4 | 0.069134 | 0.090388 |
-| 850_940 | 0.148986 | 0.009512 | 4 | 0.133850 | 0.164123 |
-| 940_1050 | 0.102672 | 0.007467 | 4 | 0.090790 | 0.114554 |
+| 850 | 0.175787 | 0.005093 | 4 | 0.167684 | 0.183891 |
+| 940 | 0.123196 | 3.422e-04 | 4 | 0.122651 | 0.123740 |
+| 1050 | 0.074800 | 0.004160 | 4 | 0.068182 | 0.081419 |
+| 850_940 | 0.150855 | 0.010267 | 4 | 0.134518 | 0.167193 |
+| 940_1050 | 0.097441 | 0.008425 | 4 | 0.084035 | 0.110846 |
 
 ### Omnibus
 
-**Path**: Friedman test (nonparametric fallback — normality violated).
+**Path**: one-way repeated-measures ANOVA (site = repeated-measures unit, condition = within-unit factor).
 
-- Q = 16.000000, df = 4.000000, p = 0.0030
-- Effect size (Kendall's W): 1.000000
+- F(4.000000, 12.000000) = 164.257681
+- Uncorrected p = 2.29e-10
+- Greenhouse-Geisser corrected p = 3.45e-05 (ε_GG = 0.412965)
+- Reported p (GG applied = True): **3.45e-05**
+- Effect size (partial η²): 0.982064
 - Significant at α = 0.05: **True**
 
 ### Post-hoc pairwise comparisons
 
-Wilcoxon signed-rank with Holm correction (nonparametric path).
+Paired t-tests with Holm correction (parametric path).
 
-> Note: with n=4 site-level observations, the two-sided Wilcoxon signed-rank floor is p = 0.125; Holm-adjusted p-values therefore cannot reach α = 0.05 at the pairwise level in this design regardless of effect size. The Friedman omnibus remains the primary evidence for a condition effect.
-
-| pair | Wilcoxon W | median_diff | p_raw | p_holm | reject (α=0.05) |
-| --- | --- | --- | --- | --- | --- |
-| 850 vs 940 | 0.000000 | 0.060445 | 0.1250 | 1.0000 | False |
-| 850 vs 1050 | 0.000000 | 0.099506 | 0.1250 | 1.0000 | False |
-| 850 vs 850_940 | 0.000000 | 0.032666 | 0.1250 | 1.0000 | False |
-| 850 vs 940_1050 | 0.000000 | 0.075304 | 0.1250 | 1.0000 | False |
-| 940 vs 1050 | 0.000000 | 0.039481 | 0.1250 | 1.0000 | False |
-| 940 vs 850_940 | 0.000000 | -0.029804 | 0.1250 | 1.0000 | False |
-| 940 vs 940_1050 | 0.000000 | 0.014243 | 0.1250 | 1.0000 | False |
-| 1050 vs 850_940 | 0.000000 | -0.068798 | 0.1250 | 1.0000 | False |
-| 1050 vs 940_1050 | 0.000000 | -0.021831 | 0.1250 | 1.0000 | False |
-| 850_940 vs 940_1050 | 0.000000 | 0.048398 | 0.1250 | 1.0000 | False |
+| pair | t | df | mean_diff | 95% CI low | 95% CI high | p_raw | p_holm | reject (α=0.05) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 850 vs 940 | 21.997674 | 3 | 0.052591 | 0.044983 | 0.060200 | 0.0002 | 0.0016 | True |
+| 850 vs 1050 | 30.503427 | 3 | 0.100987 | 0.090451 | 0.111523 | 7.74e-05 | 0.0008 | True |
+| 850 vs 850_940 | 8.637227 | 3 | 0.024932 | 0.015746 | 0.034118 | 0.0033 | 0.0163 | True |
+| 850 vs 940_1050 | 16.328233 | 3 | 0.078347 | 0.063076 | 0.093617 | 0.0005 | 0.0035 | True |
+| 940 vs 1050 | 23.881414 | 3 | 0.048395 | 0.041946 | 0.054845 | 0.0002 | 0.0014 | True |
+| 940 vs 850_940 | -5.518891 | 3 | -0.027659 | -0.043609 | -0.011710 | 0.0117 | 0.0254 | True |
+| 940 vs 940_1050 | 6.198544 | 3 | 0.025755 | 0.012532 | 0.038978 | 0.0085 | 0.0254 | True |
+| 1050 vs 850_940 | -12.304065 | 3 | -0.076055 | -0.095726 | -0.056383 | 0.0012 | 0.0069 | True |
+| 1050 vs 940_1050 | -5.754047 | 3 | -0.022640 | -0.035162 | -0.010118 | 0.0104 | 0.0254 | True |
+| 850_940 vs 940_1050 | 7.514304 | 3 | 0.053415 | 0.030793 | 0.076037 | 0.0049 | 0.0195 | True |
 
 **Condition ranking (desc. by mean):** 850 > 850_940 > 940 > 940_1050 > 1050
 
@@ -105,75 +106,76 @@ Primary quantity: the `condition * site` interaction F-test. Treated as explorat
 
 | source | SS | df | MS | F | p | partial η² |
 | --- | --- | --- | --- | --- | --- | --- |
-| condition | 0.299641 | 4.0 | 0.074910 | 243.875064 | 1.24e-79 | 0.815977 |
-| site | 0.003004 | 3.0 | 0.001001 | 3.259775 | 0.0224 | 0.042560 |
-| condition * site | 0.004248 | 12.0 | 3.540e-04 | 1.152599 | 0.3192 | 0.059150 |
-| Residual | 0.067577 | 220.0 | 3.072e-04 | NaN | NaN | NaN |
+| condition | 0.313387 | 4.0 | 0.078347 | 207.622210 | 1.81e-73 | 0.790574 |
+| site | 0.002187 | 3.0 | 7.291e-04 | 1.932097 | 0.1253 | 0.025670 |
+| condition * site | 0.005724 | 12.0 | 4.770e-04 | 1.264003 | 0.2416 | 0.064499 |
+| Residual | 0.083017 | 220.0 | 3.774e-04 | NaN | NaN | NaN |
 
-**Interaction test:** F(12.0, 220.0) = 1.152599, p = 0.3192, partial η² = 0.059150.
+**Interaction test:** F(12.0, 220.0) = 1.264003, p = 0.2416, partial η² = 0.064499.
 - Significant at α = 0.05: **False**
 - Interpretation: No evidence that the condition effect depends on site; this supports the pooled framing used in A1.
 
 ## A3 — Condition-level repeatability (CV)
 
 Outcome: per-cell Weber CV (4 × 5 matrix of cell CVs from 12 trials each). Mode: **inferential**.
-Bootstrap: 1000 iterations, 95% CI, seed = `42`.
+Bootstrap: 1000 iterations, 95% CI, seed = `123`.
 
-- Friedman Q = 13.400000, df = 4.000000, p = 0.0095
-- Kendall's W: 0.837500
+- Friedman Q = 13.800000, df = 4.000000, p = 0.0080
+- Kendall's W: 0.862500
 - Significant at α = 0.05: **True**
 
 ### Per-condition CV with bootstrap 95% CIs
 
 | condition | CV point estimate | 95% CI low | 95% CI high | iterations kept |
 | --- | --- | --- | --- | --- |
-| 850 | 0.058256 | 0.042071 | 0.066877 | 1000 |
-| 940 | 0.139556 | 0.104143 | 0.158458 | 1000 |
-| 1050 | 0.225948 | 0.154912 | 0.267654 | 1000 |
-| 850_940 | 0.131126 | 0.098680 | 0.146521 | 1000 |
-| 940_1050 | 0.198103 | 0.146696 | 0.225572 | 1000 |
+| 850 | 0.084981 | 0.061022 | 0.097359 | 1000 |
+| 940 | 0.123316 | 0.092632 | 0.138241 | 1000 |
+| 1050 | 0.252342 | 0.183038 | 0.285729 | 1000 |
+| 850_940 | 0.138216 | 0.101618 | 0.161201 | 1000 |
+| 940_1050 | 0.252287 | 0.189849 | 0.281601 | 1000 |
 
 ## Michelson sensitivity check
 
 Outcome: michelson. Unit of analysis: site-level mean (n=4 sites).
-Fallback used (RM ANOVA → Friedman): **True**.
+Fallback used (RM ANOVA → Friedman): **False**.
 
 ### Condition means (site-aggregated, 95% CI)
 
 | condition | site-level mean | sd | n_sites | 95% CI low | 95% CI high |
 | --- | --- | --- | --- | --- | --- |
-| 850 | 0.099342 | 0.001005 | 4 | 0.097742 | 0.100942 |
-| 940 | 0.063583 | 0.001589 | 4 | 0.061055 | 0.066111 |
-| 1050 | 0.041634 | 0.003561 | 4 | 0.035968 | 0.047300 |
-| 850_940 | 0.080623 | 0.005574 | 4 | 0.071753 | 0.089493 |
-| 940_1050 | 0.054237 | 0.004142 | 4 | 0.047646 | 0.060828 |
+| 850 | 0.096439 | 0.003082 | 4 | 0.091535 | 0.101342 |
+| 940 | 0.065708 | 2.213e-04 | 4 | 0.065356 | 0.066060 |
+| 1050 | 0.038949 | 0.002239 | 4 | 0.035387 | 0.042512 |
+| 850_940 | 0.081740 | 0.006002 | 4 | 0.072189 | 0.091291 |
+| 940_1050 | 0.051390 | 0.004632 | 4 | 0.044020 | 0.058761 |
 
 ### Omnibus
 
-**Path**: Friedman test (nonparametric fallback — normality violated).
+**Path**: one-way repeated-measures ANOVA (site = repeated-measures unit, condition = within-unit factor).
 
-- Q = 16.000000, df = 4.000000, p = 0.0030
-- Effect size (Kendall's W): 1.000000
+- F(4.000000, 12.000000) = 164.755103
+- Uncorrected p = 2.25e-10
+- Greenhouse-Geisser corrected p = 4.14e-05 (ε_GG = 0.403817)
+- Reported p (GG applied = True): **4.14e-05**
+- Effect size (partial η²): 0.982117
 - Significant at α = 0.05: **True**
 
 ### Post-hoc pairwise comparisons
 
-Wilcoxon signed-rank with Holm correction (nonparametric path).
+Paired t-tests with Holm correction (parametric path).
 
-> Note: with n=4 site-level observations, the two-sided Wilcoxon signed-rank floor is p = 0.125; Holm-adjusted p-values therefore cannot reach α = 0.05 at the pairwise level in this design regardless of effect size. The Friedman omnibus remains the primary evidence for a condition effect.
-
-| pair | Wilcoxon W | median_diff | p_raw | p_holm | reject (α=0.05) |
-| --- | --- | --- | --- | --- | --- |
-| 850 vs 940 | 0.000000 | 0.035347 | 0.1250 | 1.0000 | False |
-| 850 vs 1050 | 0.000000 | 0.057017 | 0.1250 | 1.0000 | False |
-| 850 vs 850_940 | 0.000000 | 0.019307 | 0.1250 | 1.0000 | False |
-| 850 vs 940_1050 | 0.000000 | 0.043666 | 0.1250 | 1.0000 | False |
-| 940 vs 1050 | 0.000000 | 0.021939 | 0.1250 | 1.0000 | False |
-| 940 vs 850_940 | 0.000000 | -0.017133 | 0.1250 | 1.0000 | False |
-| 940 vs 940_1050 | 0.000000 | 0.007975 | 0.1250 | 1.0000 | False |
-| 1050 vs 850_940 | 0.000000 | -0.038886 | 0.1250 | 1.0000 | False |
-| 1050 vs 940_1050 | 0.000000 | -0.012096 | 0.1250 | 1.0000 | False |
-| 850_940 vs 940_1050 | 0.000000 | 0.027434 | 0.1250 | 1.0000 | False |
+| pair | t | df | mean_diff | 95% CI low | 95% CI high | p_raw | p_holm | reject (α=0.05) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 850 vs 940 | 21.295941 | 3 | 0.030730 | 0.026138 | 0.035323 | 0.0002 | 0.0018 | True |
+| 850 vs 1050 | 30.190159 | 3 | 0.057489 | 0.051429 | 0.063549 | 7.98e-05 | 0.0008 | True |
+| 850 vs 850_940 | 8.924854 | 3 | 0.014699 | 0.009457 | 0.019940 | 0.0030 | 0.0148 | True |
+| 850 vs 940_1050 | 16.600132 | 3 | 0.045048 | 0.036412 | 0.053684 | 0.0005 | 0.0033 | True |
+| 940 vs 1050 | 24.758103 | 3 | 0.026759 | 0.023319 | 0.030199 | 0.0001 | 0.0013 | True |
+| 940 vs 850_940 | -5.478798 | 3 | -0.016032 | -0.025344 | -0.006720 | 0.0120 | 0.0243 | True |
+| 940 vs 940_1050 | 6.297620 | 3 | 0.014318 | 0.007082 | 0.021553 | 0.0081 | 0.0243 | True |
+| 1050 vs 850_940 | -12.074215 | 3 | -0.042791 | -0.054069 | -0.031512 | 0.0012 | 0.0073 | True |
+| 1050 vs 940_1050 | -5.749149 | 3 | -0.012441 | -0.019328 | -0.005554 | 0.0105 | 0.0243 | True |
+| 850_940 vs 940_1050 | 7.520091 | 3 | 0.030350 | 0.017506 | 0.043193 | 0.0049 | 0.0195 | True |
 
 **Condition ranking (desc. by mean):** 850 > 850_940 > 940 > 940_1050 > 1050
 

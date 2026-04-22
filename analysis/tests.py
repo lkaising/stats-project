@@ -14,6 +14,7 @@ from bootstrap import BOOTSTRAP_CI, BOOTSTRAP_ITERS, bootstrap_cv_cis, cv_matrix
 
 OMNIBUS_ALPHA = 0.05
 CI_LEVEL = 0.95
+MIN_A3_USABLE_SITES = 4
 
 
 def _matrix_to_long(matrix):
@@ -77,6 +78,10 @@ def _condition_cv_point_estimates(matrix):
             }
         )
     return out
+
+
+def _usable_a3_sites(matrix):
+    return [str(site) for site, row in matrix.iterrows() if row.notna().all()]
 
 
 def _rm_anova_path(matrix, sphericity_correction_applied):
@@ -356,6 +361,7 @@ def run_a2(df):
 def run_a3(df, bootstrap_seed):
     matrix, unstable = cv_matrix(df, metric="weber")
     any_unstable = len(unstable) > 0
+    usable_sites = _usable_a3_sites(matrix)
     point_estimates = _condition_cv_point_estimates(matrix)
     point_map = {
         row["condition"]: row["cv_point_estimate"] for row in point_estimates
@@ -370,18 +376,28 @@ def run_a3(df, bootstrap_seed):
         "iterations": BOOTSTRAP_ITERS,
         "ci": BOOTSTRAP_CI,
     }
+    base_result = {
+        "metric": "weber_cv",
+        "unit_of_analysis": "per-cell CV",
+        "unstable_cells": unstable,
+        "usable_site_count": len(usable_sites),
+        "bootstrap": bootstrap_meta,
+        "per_condition_cv": point_estimates,
+        "cv_matrix": matrix.to_dict(),
+        "bootstrap_cis": bootstrap,
+    }
 
     if any_unstable:
         return {
-            "metric": "weber_cv",
-            "unit_of_analysis": "per-cell CV",
+            **base_result,
             "a3_mode": "descriptive",
             "fallback_reason": "unstable_cells_present",
-            "unstable_cells": unstable,
-            "bootstrap": bootstrap_meta,
-            "per_condition_cv": point_estimates,
-            "cv_matrix": matrix.to_dict(),
-            "bootstrap_cis": bootstrap,
+        }
+    if len(usable_sites) < MIN_A3_USABLE_SITES:
+        return {
+            **base_result,
+            "a3_mode": "descriptive",
+            "fallback_reason": "fewer_than_four_usable_sites",
         }
 
     long_df = (
@@ -401,12 +417,8 @@ def run_a3(df, bootstrap_seed):
     p = float(row["p_unc"]) if "p_unc" in fried.columns else float(row["p-unc"])
     W = float(row["W"]) if "W" in fried.columns else float("nan")
     return {
-        "metric": "weber_cv",
-        "unit_of_analysis": "per-cell CV",
+        **base_result,
         "a3_mode": "inferential",
-        "unstable_cells": unstable,
-        "bootstrap": bootstrap_meta,
-        "per_condition_cv": point_estimates,
         "friedman": {
             "Q": Q,
             "dof": dof,
@@ -415,6 +427,4 @@ def run_a3(df, bootstrap_seed):
             "significant": bool(p < OMNIBUS_ALPHA),
             "alpha": OMNIBUS_ALPHA,
         },
-        "cv_matrix": matrix.to_dict(),
-        "bootstrap_cis": bootstrap,
     }
