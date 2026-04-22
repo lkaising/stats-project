@@ -3,6 +3,8 @@
 Hard checks raise ValidationError. Soft checks return ok=False but do not raise.
 """
 
+from parameters import Parameters
+
 
 class ValidationError(Exception):
     pass
@@ -22,12 +24,12 @@ def _hard_bounds(df):
     return True, "ok"
 
 
-def _row_count(df, params):
-    expected = len(params["sites"]) * len(params["conditions"]) * params["n_trials"]
+def _row_count(df, params: Parameters):
+    expected = len(params.sites) * len(params.conditions) * params.n_trials
     if len(df) != expected:
         return False, f"row count {len(df)} != expected {expected}"
     counts = df.groupby(["site", "condition"]).size()
-    if not (counts == params["n_trials"]).all():
+    if not (counts == params.n_trials).all():
         return False, "not all (site, condition) cells have the expected trial count"
     return True, "ok"
 
@@ -40,13 +42,13 @@ def _condition_ordering(df):
     return ok, {c: v for c, v in zip(order, values)}
 
 
-def _ratio_variability(df, params):
+def _ratio_variability(df, params: Parameters):
     cell_sd = df.groupby(["site", "condition"])[["I_V", "I_B"]].std(ddof=1)
     per_site = {}
     overall_ok = True
-    for site in params["sites"]:
-        sb_cells = cell_sd.loc[site].loc[list(params["single_band_conditions"])]
-        rt_cells = cell_sd.loc[site].loc[list(params["ratio_conditions"])]
+    for site in params.sites:
+        sb_cells = cell_sd.loc[site].loc[list(params.single_band_conditions)]
+        rt_cells = cell_sd.loc[site].loc[list(params.ratio_conditions)]
         sb_sd_V = float(sb_cells["I_V"].mean())
         rt_sd_V = float(rt_cells["I_V"].mean())
         sb_sd_B = float(sb_cells["I_B"].mean())
@@ -54,18 +56,20 @@ def _ratio_variability(df, params):
         site_ok = rt_sd_V > sb_sd_V and rt_sd_B > sb_sd_B
         overall_ok = overall_ok and site_ok
         per_site[site] = {
-            "sb_sd_V": sb_sd_V, "rt_sd_V": rt_sd_V,
-            "sb_sd_B": sb_sd_B, "rt_sd_B": rt_sd_B,
+            "sb_sd_V": sb_sd_V,
+            "rt_sd_V": rt_sd_V,
+            "sb_sd_B": sb_sd_B,
+            "rt_sd_B": rt_sd_B,
             "ok": site_ok,
         }
     return overall_ok, per_site
 
 
-def _site_modesty(df, params):
-    offsets_ok = all(abs(v) <= 0.012 + 1e-12 for v in params["site_offsets"].values())
+def _site_modesty(df, params: Parameters):
+    offsets_ok = all(abs(v) <= 0.012 + 1e-12 for v in params.site_offsets.values())
     per_site_weber = df.groupby("site")["weber"].mean()
     pooled = float(df["weber"].mean())
-    deviations = {s: float(per_site_weber[s] - pooled) for s in params["sites"]}
+    deviations = {s: float(per_site_weber[s] - pooled) for s in params.sites}
     weber_ok = all(abs(d) < 0.010 for d in deviations.values())
     return (offsets_ok and weber_ok), {
         "offsets_ok": offsets_ok,
@@ -74,12 +78,12 @@ def _site_modesty(df, params):
     }
 
 
-def _interaction_modesty(params):
-    magnitudes_ok = all(abs(v) <= 0.006 + 1e-12 for v in params["interactions"].values())
+def _interaction_modesty(params: Parameters):
+    magnitudes_ok = all(abs(v) <= 0.006 + 1e-12 for v in params.interactions.values())
     per_condition_sums = {}
     sums_ok = True
-    for c in params["conditions"]:
-        s = sum(params["interactions"][(site, c)] for site in params["sites"])
+    for c in params.conditions:
+        s = sum(params.interactions[(site, c)] for site in params.sites)
         per_condition_sums[c] = s
         if abs(s) > 1e-9:
             sums_ok = False
@@ -89,7 +93,7 @@ def _interaction_modesty(params):
     }
 
 
-def run_checks(df, params):
+def run_checks(df, params: Parameters):
     bounds_ok, bounds_msg = _hard_bounds(df)
     count_ok, count_msg = _row_count(df, params)
     order_ok, order_info = _condition_ordering(df)

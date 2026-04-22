@@ -4,16 +4,18 @@ import argparse
 import hashlib
 import json
 import sys
+from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 _HERE = Path(__file__).parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from parameters import load_parameters
+from parameters import Parameters, load_parameters
 from model import build_dataset
 from metrics import attach_metrics
 from validation import run_checks
@@ -22,9 +24,12 @@ from validation import run_checks
 OUTPUT_DIR = _HERE / "output"
 
 
-def _params_to_jsonable(params):
+def _params_to_jsonable(params: Parameters) -> dict:
     out = {}
-    for key, value in params.items():
+    for field in fields(params):
+        key = field.name
+        value = getattr(params, key)
+
         if key == "interactions":
             out[key] = {f"{site}|{cond}": val for (site, cond), val in value.items()}
         elif key == "ratio_parents":
@@ -38,17 +43,16 @@ def _params_to_jsonable(params):
     return out
 
 
-def _run_once(seed):
+def _run_once(seed: int | None) -> tuple[Parameters, pd.DataFrame]:
     params = load_parameters(seed=seed) if seed is not None else load_parameters()
-    rng = np.random.default_rng(params["seed"])
+    rng = np.random.default_rng(params.seed)
     df = attach_metrics(build_dataset(params, rng))
     return params, df
 
-
-def _format_log(df, params, results):
+def _format_log(df: pd.DataFrame, params: Parameters, results: dict) -> str:
     lines = [
         f"Run timestamp: {datetime.now().isoformat(timespec='seconds')}",
-        f"Seed: {params['seed']}",
+        f"Seed: {params.seed}",
         f"Rows written: {len(df)}",
         "",
         "Hard checks:",
@@ -77,8 +81,7 @@ def _format_log(df, params, results):
         )
     return "\n".join(lines) + "\n"
 
-
-def _write_outputs(df, params, results, output_dir):
+def _write_outputs(df: pd.DataFrame, params: Parameters, results: dict, output_dir: Path):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     dataset_path = output_dir / "synthetic_dataset.csv"
@@ -95,7 +98,7 @@ def _write_outputs(df, params, results, output_dir):
     return dataset_path, params_path, log_path
 
 
-def main(seed=None, selftest=False):
+def main(seed: int | None = None, selftest: bool = False) -> None:
     params, df = _run_once(seed)
     results = run_checks(df, params)
 
