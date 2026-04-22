@@ -14,8 +14,13 @@ generator/output/*
 !generator/output/
 !generator/output/synthetic_dataset.csv
 
-# Reporting outputs — all derived from the generator artifacts; regenerate locally.
-reporting/output/
+# Reporting outputs — keep only the final report and figures, ignore the rest.
+reporting/output/*
+!reporting/output/
+!reporting/output/report.md
+!reporting/output/weber_boxplot_by_condition.png
+!reporting/output/weber_interaction_by_site.png
+!reporting/output/cv_by_condition.png
 
 # Notes and materials from the plan phase, which are not intended to be shared.
 plan-materials/
