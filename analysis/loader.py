@@ -26,6 +26,8 @@ def load_dataset():
 
 
 def load_parameters():
+    if not PARAMS_PATH.exists():
+        return {}
     with open(PARAMS_PATH) as f:
         return json.load(f)
 

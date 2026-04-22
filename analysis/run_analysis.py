@@ -2,8 +2,8 @@
 
 import json
 import math
-import sys
 
+import numpy as np
 import pandas as pd
 
 from assumptions import run_assumption_checks
@@ -13,16 +13,27 @@ from report import render_report
 from tests import compare_rankings, run_a1, run_a2, run_a3, run_michelson
 
 
-def _json_default(obj):
-    if isinstance(obj, float):
-        if math.isnan(obj):
-            return None
+def _sanitize_for_json(obj):
+    if obj is None or isinstance(obj, (str, bool, int)):
         return obj
-    raise TypeError(f"Not JSON-serializable: {type(obj).__name__}")
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, tuple):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        obj = float(obj)
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    return obj
 
 
 def _write_json(path, payload):
-    path.write_text(json.dumps(payload, indent=2, default=_json_default))
+    sanitized = _sanitize_for_json(payload)
+    path.write_text(json.dumps(sanitized, indent=2, allow_nan=False))
 
 
 def _posthoc_dataframe(res):

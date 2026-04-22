@@ -46,6 +46,20 @@ def _condition_means_with_ci(matrix):
     return out
 
 
+def _condition_cv_point_estimates(matrix):
+    out = []
+    for cond in matrix.columns:
+        col = matrix[cond].dropna().to_numpy(dtype=float)
+        point_estimate = float(np.mean(col)) if col.size else float("nan")
+        out.append(
+            {
+                "condition": str(cond),
+                "cv_point_estimate": point_estimate,
+            }
+        )
+    return out
+
+
 def _rm_anova_path(matrix, sphericity_correction_applied):
     long_df = _matrix_to_long(matrix)
     aov = pg.rm_anova(
@@ -213,7 +227,14 @@ def run_rm_pipeline(df, metric, assumption_block):
         "metric": metric,
         "n_sites": int(matrix.shape[0]),
         "n_conditions": int(matrix.shape[1]),
-        "fallback_used": fallback,
+        "assumption_path": {
+            "fallback_used": fallback,
+            "mauchly_status": assumption_block["mauchly"]["status"],
+            "sphericity_correction_applied": bool(
+                assumption_block["sphericity_correction_applied"]
+            ),
+            "sphericity_reason": assumption_block["sphericity_reason"],
+        },
         "condition_means": means,
         "ranking_desc_by_mean": [d["condition"] for d in ranking],
         **omnibus,
@@ -288,8 +309,14 @@ def run_a2(df):
 def run_a3(df):
     matrix, unstable = cv_matrix(df, metric="weber")
     any_unstable = len(unstable) > 0
+    point_estimates = _condition_cv_point_estimates(matrix)
+    point_map = {
+        row["condition"]: row["cv_point_estimate"] for row in point_estimates
+    }
 
     bootstrap = bootstrap_cv_cis(df, metric="weber")
+    for row in bootstrap:
+        row["cv_point_estimate"] = point_map[row["condition"]]
 
     if any_unstable:
         return {
@@ -298,6 +325,7 @@ def run_a3(df):
             "a3_mode": "descriptive",
             "fallback_reason": "unstable_cells_present",
             "unstable_cells": unstable,
+            "per_condition_cv": point_estimates,
             "cv_matrix": matrix.to_dict(),
             "bootstrap_cis": bootstrap,
         }
@@ -323,6 +351,7 @@ def run_a3(df):
         "unit_of_analysis": "per-cell CV",
         "a3_mode": "inferential",
         "unstable_cells": unstable,
+        "per_condition_cv": point_estimates,
         "friedman": {
             "Q": Q,
             "dof": dof,

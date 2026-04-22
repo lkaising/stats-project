@@ -6,8 +6,8 @@ sensitivity-check analyses on the single synthetic dataset produced by
 
 ## What it does
 
-- Reads `generator/output/synthetic_dataset.csv` (240 trial-level rows) and
-  `generator/output/parameters_used.json`.
+- Reads `generator/output/synthetic_dataset.csv` (240 trial-level rows) and,
+  when present, `generator/output/parameters_used.json` for report metadata.
 - Runs assumption checks (Shapiro-Wilk per condition on site-aggregated means;
   Mauchly's sphericity on the 4 × 5 site-aggregated matrix) and records the
   fallback decisions.
@@ -58,14 +58,17 @@ Written to `analysis/output/`:
 - `assumption_checks.json` — Shapiro-Wilk + Mauchly outputs and fallback
   decisions (per metric).
 - `a1_results.json` — A1 condition means with 95% CIs, omnibus (RM ANOVA or
-  Friedman), effect size, and Holm-corrected post-hoc rows.
+  Friedman), nested `assumption_path` provenance, effect size, and
+  Holm-corrected post-hoc rows.
 - `a1_posthoc.csv` — the A1 post-hoc rows in tabular form.
 - `a2_results.json` — full two-way ANOVA table with partial η².
-- `a3_results.json` — A3 Friedman result (or descriptive fallback), CV matrix,
-  and bootstrap CIs.
-- `a3_bootstrap_cis.csv` — per-condition CV bootstrap 95% CIs.
+- `a3_results.json` — A3 Friedman result (or descriptive fallback),
+  per-condition observed CV point estimates, CV matrix, and bootstrap CIs.
+- `a3_bootstrap_cis.csv` — per-condition observed CV point estimates with
+  bootstrap 95% CIs.
 - `michelson_results.json` — Michelson sensitivity check, mirroring A1's
-  structure, plus the Weber-vs-Michelson ranking comparison.
+  structure including nested `assumption_path` provenance, plus the
+  Weber-vs-Michelson ranking comparison.
 - `michelson_posthoc.csv` — Michelson post-hoc rows in tabular form.
 
 ## Framing

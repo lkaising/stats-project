@@ -206,7 +206,7 @@ def _a1_section(title, res):
         f"Outcome: {res['metric']}. Unit of analysis: site-level mean (n={res['n_sites']} sites)."
     )
     lines.append(
-        f"Fallback used (RM ANOVA → Friedman): **{res['fallback_used']}**."
+        f"Fallback used (RM ANOVA → Friedman): **{res['assumption_path']['fallback_used']}**."
     )
     lines.append("")
     lines.append("### Condition means (site-aggregated, 95% CI)")
@@ -313,7 +313,7 @@ def _a3_section(res):
     rows = [
         [
             b["condition"],
-            _fmt_num(b["cv_mean"]),
+            _fmt_num(b["cv_point_estimate"]),
             _fmt_num(b["ci_low"]),
             _fmt_num(b["ci_high"]),
             str(b["iterations_kept"]),
@@ -321,7 +321,7 @@ def _a3_section(res):
         for b in res["bootstrap_cis"]
     ]
     lines.append(_table(
-        ["condition", "CV (bootstrap mean)", "95% CI low", "95% CI high", "iterations kept"],
+        ["condition", "CV point estimate", "95% CI low", "95% CI high", "iterations kept"],
         rows,
     ))
     lines.append("")
@@ -340,7 +340,7 @@ def _michelson_section(michelson_res, comparison):
 
 
 def _header(params, n_rows):
-    return "\n".join([
+    lines = [
         "# Formal Analysis Report — NIR Vein-Contrast (Synthetic Data)",
         "",
         "> **Scope.** This report exercises the locked A1 / A2 / A3 / Michelson "
@@ -351,13 +351,18 @@ def _header(params, n_rows):
         "completed platform.",
         "",
         f"- Input: `generator/output/synthetic_dataset.csv`",
-        f"- Subject: `{params.get('subject_id')}`",
-        f"- Seed: `{params.get('seed')}`",
         f"- Rows (trials): `{n_rows}`",
-        f"- Sites: {', '.join(params.get('sites', []))}",
-        f"- Conditions: {', '.join(params.get('conditions', []))}",
-        "",
-    ])
+    ]
+    if "subject_id" in params:
+        lines.append(f"- Subject: `{params['subject_id']}`")
+    if "seed" in params:
+        lines.append(f"- Seed: `{params['seed']}`")
+    if params.get("sites"):
+        lines.append(f"- Sites: {', '.join(params['sites'])}")
+    if params.get("conditions"):
+        lines.append(f"- Conditions: {', '.join(params['conditions'])}")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def _closing(comparison):

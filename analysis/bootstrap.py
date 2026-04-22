@@ -75,7 +75,6 @@ def bootstrap_cv_cis(
             results.append(
                 {
                     "condition": cond,
-                    "cv_mean": float("nan"),
                     "ci_low": float("nan"),
                     "ci_high": float("nan"),
                     "iterations_kept": 0,
@@ -85,7 +84,6 @@ def bootstrap_cv_cis(
         results.append(
             {
                 "condition": cond,
-                "cv_mean": float(np.mean(draws)),
                 "ci_low": float(np.quantile(draws, alpha)),
                 "ci_high": float(np.quantile(draws, 1.0 - alpha)),
                 "iterations_kept": int(draws.size),
