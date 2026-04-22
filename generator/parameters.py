@@ -1,7 +1,4 @@
-"""Locked parameter values and design constants.
-
-Values are fixed by Step 1 (schema) and Step 2 (calibration). No logic here.
-"""
+"""Locked parameter values and design constants."""
 
 from dataclasses import dataclass
 from types import MappingProxyType
