@@ -22,5 +22,10 @@ reporting/output/*
 !reporting/output/weber_interaction_by_site.png
 !reporting/output/cv_by_condition.png
 
+# Analysis outputs — keep only the final analysis results, ignore the rest.
+analysis/output/*
+!analysis/output/
+!analysis/output/analysis_report.md
+
 # Notes and materials from the plan phase, which are not intended to be shared.
 plan-materials/
