@@ -1,6 +1,6 @@
 # analysis/
 
-Formal Step 6 analysis layer. Runs the locked A1, A2, A3, and Michelson
+Runs the locked A1, A2, A3, and Michelson
 sensitivity-check analyses on the single synthetic dataset produced by
 `generator/`, and writes a markdown report plus per-analysis artifacts.
 

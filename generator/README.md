@@ -1,4 +1,4 @@
-# NIR Vein-Contrast Synthetic-Data Generator
+# /generator
 
 Produces the single synthetic dataset used by the locked A1, A2, A3, and Michelson
 sensitivity analyses. Values are simulated at the ROI-intensity level for vein and
