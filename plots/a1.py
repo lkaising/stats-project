@@ -6,8 +6,10 @@ Produces two polished figures from ``a1_results.json``:
 * ``a1_posthoc_matrix.png`` — compact pairwise Holm-corrected matrix.
 """
 
+from numbers import Real
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -23,6 +25,12 @@ from loader import condition_means_df
 
 
 _TOL = 1e-9
+
+
+def _as_float(value: object, label: str) -> float:
+    if not isinstance(value, Real):
+        raise TypeError(f"{label} must be real-valued, got {type(value).__name__}")
+    return float(value)
 
 
 def _omnibus_line(a1: dict) -> str:
@@ -61,10 +69,11 @@ def _numerical_guard(a1: dict) -> None:
     df = condition_means_df(a1["condition_means"])
     expected = {row["condition"]: row["mean"] for row in a1["condition_means"]}
     for cond, expected_mean in expected.items():
-        plotted = float(df.loc[cond, "mean"])
-        if abs(plotted - expected_mean) > _TOL:
+        plotted = _as_float(df.loc[cond, "mean"], f"{cond} plotted mean")
+        expected_value = _as_float(expected_mean, f"{cond} expected mean")
+        if abs(plotted - expected_value) > _TOL:
             raise ValueError(
-                f"A1 spot check failed for {cond}: plotted={plotted} expected={expected_mean}"
+                f"A1 spot check failed for {cond}: plotted={plotted} expected={expected_value}"
             )
 
 
@@ -119,7 +128,7 @@ def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
             reject_grid[i, j] = 1.0 if row["reject_holm_at_0.05"] else 0.0
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    cmap = plt.matplotlib.colors.ListedColormap(["#f0f0f0", "#4a6fa5"])
+    cmap = mcolors.ListedColormap(["#f0f0f0", "#4a6fa5"])
     ax.imshow(np.nan_to_num(reject_grid, nan=-1), cmap=cmap, vmin=0, vmax=1)
 
     for i, a in enumerate(CONDITION_ORDER):
