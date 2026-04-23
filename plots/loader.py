@@ -6,6 +6,8 @@ minimal schema guard so downstream rendering code can assume a valid payload.
 """
 
 import json
+from collections.abc import Iterable
+from typing import Any, Literal, TypeAlias, overload
 
 import pandas as pd
 
@@ -24,7 +26,20 @@ class ArtifactSchemaError(ValueError):
     pass
 
 
-def _read_json(filename: str, required: bool = True):
+JsonDict: TypeAlias = dict[str, Any]
+
+
+@overload
+def _read_json(filename: str, required: Literal[True] = True) -> JsonDict:
+    ...
+
+
+@overload
+def _read_json(filename: str, required: Literal[False] = False) -> JsonDict | None:
+    ...
+
+
+def _read_json(filename: str, required: bool = True) -> JsonDict | None:
     path = ANALYSIS_OUTPUT_DIR / filename
     if not path.exists():
         if required:
@@ -32,10 +47,15 @@ def _read_json(filename: str, required: bool = True):
                 f"Required analysis artifact missing: {path}"
             )
         return None
-    return json.loads(path.read_text())
+    payload = json.loads(path.read_text())
+    if not isinstance(payload, dict):
+        raise ArtifactSchemaError(
+            f"{filename} must contain a top-level JSON object"
+        )
+    return payload
 
 
-def _require_keys(payload: dict, keys, source: str) -> None:
+def _require_keys(payload: JsonDict, keys: Iterable[str], source: str) -> None:
     missing = [k for k in keys if k not in payload]
     if missing:
         raise ArtifactSchemaError(
@@ -51,7 +71,7 @@ def _assert_conditions_covered(conditions, source: str) -> None:
         )
 
 
-def load_a1() -> dict:
+def load_a1() -> JsonDict:
     data = _read_json("a1_results.json", required=True)
     _require_keys(
         data,
@@ -64,7 +84,7 @@ def load_a1() -> dict:
     return data
 
 
-def load_a3() -> dict:
+def load_a3() -> JsonDict:
     data = _read_json("a3_results.json", required=True)
     _require_keys(
         data,
@@ -77,7 +97,7 @@ def load_a3() -> dict:
     return data
 
 
-def load_michelson() -> dict:
+def load_michelson() -> JsonDict:
     data = _read_json("michelson_results.json", required=True)
     _require_keys(
         data,
@@ -90,7 +110,7 @@ def load_michelson() -> dict:
     return data
 
 
-def load_a2(required: bool = False):
+def load_a2(required: bool = False) -> JsonDict | None:
     data = _read_json("a2_results.json", required=required)
     if data is None:
         return None
@@ -104,7 +124,7 @@ def load_a2(required: bool = False):
     return data
 
 
-def load_assumption_checks():
+def load_assumption_checks() -> JsonDict | None:
     return _read_json("assumption_checks.json", required=False)
 
 
