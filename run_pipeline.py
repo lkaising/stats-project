@@ -41,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         ("generator", REPO_ROOT / "generator" / "generate.py", generator_args),
         ("reporting", REPO_ROOT / "reporting" / "run_report.py", []),
         ("analysis", REPO_ROOT / "analysis" / "run_analysis.py", []),
+        ("plots", REPO_ROOT / "plots" / "run_plots.py", []),
     ]
 
     try:
