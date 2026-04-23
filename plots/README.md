@@ -46,9 +46,6 @@ assessable interaction term, and the raw dataset yields a complete
 `(site × condition)` cell-means matrix. If any of those fail, the runner logs
 a skip reason and continues; the stage still exits 0.
 
-Note: `plots/output/` is **not** currently covered by `.gitignore`, so the
-generated artifacts will appear as untracked files in `git status`.
-
 ## How to run
 
 From the repository root:
@@ -67,6 +64,3 @@ The plots stage is also wired into `run_pipeline.py` as the final stage.
 - Captions surface the analysis pathway (RM-ANOVA vs. Friedman fallback,
   Greenhouse-Geisser correction, A3 inferential vs. descriptive mode) so the
   presentation layer stays consistent with the upstream analysis.
-
-See [`plan-materials/plots_implementation_plan.md`](../plan-materials/plots_implementation_plan.md)
-for scope, non-goals, and follow-on items.
