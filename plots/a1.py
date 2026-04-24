@@ -150,6 +150,7 @@ def _posthoc_caption(a1: dict, delta_label: str) -> str:
         delta_context = " from official post-hoc rows"
     return (
         f"{path_label} on site-level means (n={n_sites}); "
+        f"* = significant after Holm correction at α=.05; "
         f"cells show {delta_label}(row−column){delta_context} and Holm-adjusted p_adj; "
         f"shading tracks |{delta_label}|."
     )
@@ -381,10 +382,12 @@ def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
             linewidth=linewidth,
         )
         ax.add_patch(rect)
+        delta_text = _fmt_delta(row["delta"], row["delta_label"])
+        if row["reject"]:
+            delta_text += "*"
         ax.text(
             j, i,
-            f"{_fmt_delta(row['delta'], row['delta_label'])}\n"
-            f"{_fmt_p_holm(row['p_holm'])}",
+            f"{delta_text}\n{_fmt_p_holm(row['p_holm'])}",
             ha="center", va="center",
             color=_posthoc_text_color(fill),
             fontsize=_POSTHOC_CELL_FONT_SIZE,
