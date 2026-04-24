@@ -159,7 +159,7 @@ def render_a2_interaction(
         linestyle=(0, (4, 3)),
         linewidth=1.35,
         alpha=0.68,
-        label="Pooled A1 mean",
+        label="A1 pooled mean",
         zorder=1,
     )
     site_handles = []
@@ -191,7 +191,7 @@ def render_a2_interaction(
     ax.margins(x=0.06)
     ax.legend(
         handles=site_handles + [reference_line],
-        title="Site profiles / reference",
+        title="Profiles",
         loc="upper right",
         fontsize=8,
         title_fontsize=9,
@@ -199,21 +199,19 @@ def render_a2_interaction(
 
     denom_df = a2["interaction_denominator_df"]
     stat = (
-        f"Two-way fixed-effects ANOVA (trial-level, n={a2.get('n_obs')}):  "
-        f"F({_fmt_df(interaction['df'])}, {_fmt_df(denom_df)}) = {fmt_num(interaction['F'], 2)},  "
-        f"{fmt_p(interaction['p'])};  η²ₚ = {fmt_num(interaction['partial_eta_sq'], 3)}  ·  "
-        f"α = {a2['alpha']}"
+        f"A2 interaction, trial-level fixed-effects ANOVA (n={a2.get('n_obs')}): "
+        f"F({_fmt_df(interaction['df'])}, {_fmt_df(denom_df)})={fmt_num(interaction['F'], 2)}, "
+        f"{fmt_p(interaction['p'])}, η²ₚ={fmt_num(interaction['partial_eta_sq'], 3)}, "
+        f"α={a2['alpha']}"
     )
     note = (
-        "Site profiles show descriptive A2 site-condition means; "
-        "dashed gray line shows pooled A1 condition means for reference."
+        "Site lines = A2 site-condition means; dashed gray = pooled A1 condition means. "
+        f"{a2['interaction_interpretation']}"
     )
-    interpretation = f"Inferential test: {a2['interaction_interpretation']}"
-    fig.text(0.5, 0.085, stat, ha="center", fontsize=9)
-    fig.text(0.5, 0.050, note, ha="center", fontsize=8, color="#555555")
-    fig.text(0.5, 0.020, interpretation, ha="center", fontsize=8, color="#555555")
+    fig.text(0.5, 0.060, stat, ha="center", fontsize=9)
+    fig.text(0.5, 0.025, note, ha="center", fontsize=8, color="#555555")
 
-    fig.tight_layout(rect=(0, 0.16, 1, 1))
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
     fig.savefig(out_path, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
     return True, "ok"
