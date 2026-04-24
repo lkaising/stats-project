@@ -66,6 +66,21 @@ def _condition_means_with_ci(matrix):
     return out
 
 
+def _site_condition_means(matrix):
+    """Export-only provenance for the site-level matrix used by A1."""
+    out = []
+    for site, row in matrix.iterrows():
+        for cond, value in row.items():
+            out.append(
+                {
+                    "site": str(site),
+                    "condition": str(cond),
+                    "mean": float(value),
+                }
+            )
+    return out
+
+
 def _condition_cv_point_estimates(matrix):
     out = []
     for cond in matrix.columns:
@@ -238,7 +253,7 @@ def _apply_holm(posthoc_rows):
             row["reject_holm_at_0.05"] = False
 
 
-def run_rm_pipeline(df, metric, assumption_block):
+def run_rm_pipeline(df, metric, assumption_block, export_site_condition_means=False):
     matrix = site_level_matrix(df, metric)
     means = _condition_means_with_ci(matrix)
     fallback = bool(assumption_block["friedman_fallback_triggered"])
@@ -250,7 +265,7 @@ def run_rm_pipeline(df, metric, assumption_block):
             sphericity_correction_applied=assumption_block["sphericity_correction_applied"],
         )
     ranking = sorted(means, key=lambda d: d["mean"], reverse=True)
-    return {
+    result = {
         "metric": metric,
         "n_sites": int(matrix.shape[0]),
         "n_conditions": int(matrix.shape[1]),
@@ -266,10 +281,18 @@ def run_rm_pipeline(df, metric, assumption_block):
         "ranking_desc_by_mean": [d["condition"] for d in ranking],
         **omnibus,
     }
+    if export_site_condition_means:
+        result["site_condition_means"] = _site_condition_means(matrix)
+    return result
 
 
 def run_a1(df, assumptions):
-    return run_rm_pipeline(df, "weber", assumptions["weber"])
+    return run_rm_pipeline(
+        df,
+        "weber",
+        assumptions["weber"],
+        export_site_condition_means=True,
+    )
 
 
 def run_michelson(df, assumptions):

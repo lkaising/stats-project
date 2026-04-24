@@ -35,7 +35,7 @@ Written to `plots/output/`:
 
 | File | Source |
 | --- | --- |
-| `a1_condition_means_ci.png` | `a1_results.json::condition_means` |
+| `a1_condition_means_ci.png` | `a1_results.json::condition_means` + exported site means |
 | `a1_posthoc_matrix.png` | `a1_results.json::posthoc` |
 | `a3_condition_cv_ci.png` | `a3_results.json::bootstrap_cis` + `a3_results.json::cv_matrix` |
 | `michelson_vs_weber.png` | `a1_results.json` + `michelson_results.json` |
@@ -59,6 +59,7 @@ The plots stage is also wired into `run_pipeline.py` as the final stage.
 ## Conventions
 
 - Canonical condition order (locked in v1): `["850", "850_940", "940", "940_1050", "1050"]`.
+- A1 main-figure display order: `["850", "940", "1050", "850_940", "940_1050"]`.
 - Canonical site order: `["dorsal_hand_L", "dorsal_hand_R", "antecubital_L", "antecubital_R"]`.
 - Library: matplotlib only.
 - Captions surface the analysis pathway (RM-ANOVA vs. Friedman fallback,

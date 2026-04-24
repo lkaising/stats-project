@@ -10,7 +10,16 @@ GENERATOR_OUTPUT_DIR = REPO_ROOT / "generator" / "output"
 PLOTS_OUTPUT_DIR = REPO_ROOT / "plots" / "output"
 
 CONDITION_ORDER = ["850", "850_940", "940", "940_1050", "1050"]
+# A1_MAIN_FIGURE_CONDITION_ORDER = ["850", "940", "1050", "850_940", "940_1050"]
 SITE_ORDER = ["dorsal_hand_L", "dorsal_hand_R", "antecubital_L", "antecubital_R"]
+
+CONDITION_DISPLAY_LABELS = {
+    "850": "850",
+    "940": "940",
+    "1050": "1050",
+    "850_940": "850/940",
+    "940_1050": "940/1050",
+}
 
 CONDITION_PALETTE = {
     "850": "#1f77b4",

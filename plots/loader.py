@@ -85,11 +85,13 @@ def load_a1() -> JsonDict:
     _require_keys(
         data,
         ["condition_means", "path", "omnibus", "effect_size",
-         "assumption_path", "posthoc", "ranking_desc_by_mean"],
+         "assumption_path", "posthoc", "ranking_desc_by_mean",
+         "site_condition_means"],
         "a1_results.json",
     )
     conds = [row["condition"] for row in data["condition_means"]]
     _assert_conditions_covered(conds, "a1_results.json::condition_means")
+    site_condition_means_df(data["site_condition_means"])
     return data
 
 
@@ -156,9 +158,39 @@ def load_raw_dataset() -> pd.DataFrame:
     return df
 
 
-def condition_means_df(condition_means: list) -> pd.DataFrame:
+def condition_means_df(
+    condition_means: list,
+    condition_order: list[str] | None = None,
+) -> pd.DataFrame:
     df = pd.DataFrame(condition_means).set_index("condition")
-    return df.reindex(CONDITION_ORDER)
+    return df.reindex(condition_order or CONDITION_ORDER)
+
+
+def site_condition_means_df(
+    site_condition_means: list,
+    condition_order: list[str] | None = None,
+) -> pd.DataFrame:
+    source = "a1_results.json::site_condition_means"
+    df = pd.DataFrame(site_condition_means)
+    needed = {"site", "condition", "mean"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ArtifactSchemaError(
+            f"{source} missing columns: {sorted(missing)}"
+        )
+    _assert_conditions_covered(df["condition"].astype(str).tolist(), source)
+    _assert_sites_covered(df["site"].astype(str).tolist(), source)
+    matrix = df.pivot(index="site", columns="condition", values="mean")
+    matrix = matrix.reindex(
+        index=SITE_ORDER,
+        columns=condition_order or CONDITION_ORDER,
+    )
+    if matrix.isna().any().any():
+        missing_count = int(matrix.isna().sum().sum())
+        raise ArtifactSchemaError(
+            f"{source} has {missing_count} missing site-condition cells"
+        )
+    return matrix
 
 
 def bootstrap_cis_df(bootstrap_cis: list) -> pd.DataFrame:

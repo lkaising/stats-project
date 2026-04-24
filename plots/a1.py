@@ -14,14 +14,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from config import (
+    # A1_MAIN_FIGURE_CONDITION_ORDER,
+    CONDITION_DISPLAY_LABELS,
     CONDITION_ORDER,
     CONDITION_PALETTE,
     DPI,
     FIGSIZE,
+    SITE_ORDER,
     fmt_num,
     fmt_p,
 )
-from loader import condition_means_df
+from loader import condition_means_df, site_condition_means_df
 
 
 _TOL = 1e-9
@@ -33,36 +36,60 @@ def _as_float(value: object, label: str) -> float:
     return float(value)
 
 
+def _fmt_p_named(name: str, p: float) -> str:
+    if p is None:
+        return f"{name}=n/a"
+    if p < 0.001:
+        return f"{name}<.001"
+    return f"{name}={p:.3f}"
+
+
+def _fmt_trimmed(x: float, digits: int = 3) -> str:
+    text = f"{float(x):.{digits}f}"
+    if text.startswith("0."):
+        return text[1:]
+    if text.startswith("-0."):
+        return "-" + text[2:]
+    return text
+
+
 def _omnibus_line(a1: dict) -> str:
     omni = a1["omnibus"]
     es = a1["effect_size"]
     path = a1["path"]
     if path == "rm_anova":
         gg = omni.get("sphericity_correction_applied", False)
-        corr = " (Greenhouse-Geisser corrected)" if gg else ""
-        stat = (
-            f"RM-ANOVA  F({omni['df1']:g}, {omni['df2']:g}) = "
-            f"{fmt_num(omni['F'], 2)},  {fmt_p(omni['p_reported'])}{corr}"
-        )
+        if gg:
+            eps_gg = _as_float(omni["eps_gg"], "A1 eps_gg")
+            df1 = _as_float(omni["df1"], "A1 df1") * eps_gg
+            df2 = _as_float(omni["df2"], "A1 df2") * eps_gg
+            stat = (
+                f"RM-ANOVA, GG-corrected: F({df1:.2f}, {df2:.2f})="
+                f"{fmt_num(omni['F'], 2)}, {_fmt_p_named('p_GG', omni['p_gg'])}, "
+                f"ε_GG={_fmt_trimmed(omni['eps_gg'])}"
+            )
+        else:
+            stat = (
+                f"RM-ANOVA: F({omni['df1']:g}, {omni['df2']:g})="
+                f"{fmt_num(omni['F'], 2)}, {fmt_p(omni['p_reported'])}"
+            )
     else:
         stat = (
-            f"Friedman  Q({omni['dof']:g}) = {fmt_num(omni['Q'], 2)},  "
+            f"Friedman: Q({omni['dof']:g})={fmt_num(omni['Q'], 2)}, "
             f"{fmt_p(omni['p'])}"
         )
     if es.get("value") is not None:
-        label = "η²ₚ" if es["type"] == "partial_eta_sq" else "W"
-        stat += f";  {label} = {fmt_num(es['value'], 3)}"
+        label = "η²p" if es["type"] == "partial_eta_sq" else "W"
+        stat += f", {label}={_fmt_trimmed(es['value'])}"
     return stat
 
 
 def _provenance_line(a1: dict) -> str:
-    ap = a1["assumption_path"]
-    bits = [f"n_sites={a1['n_sites']}", f"α={a1['omnibus']['alpha']}"]
-    if ap.get("fallback_used"):
-        bits.append("Friedman fallback")
-    if ap.get("sphericity_correction_applied"):
-        bits.append("GG-corrected")
-    return "  ·  ".join(bits)
+    return (
+        "Colored points: condition means ±95% CI across sites; "
+        "gray lines: anonymous site means; "
+        f"repeated-measures unit=site, n={a1['n_sites']}."
+    )
 
 
 def _numerical_guard(a1: dict) -> None:
@@ -77,9 +104,48 @@ def _numerical_guard(a1: dict) -> None:
             )
 
 
+def _site_profile_guard(a1: dict, profiles) -> None:
+    expected_rows = int(a1["n_sites"]) * int(a1["n_conditions"])
+    if len(a1["site_condition_means"]) != expected_rows:
+        raise ValueError(
+            "A1 site_condition_means must contain one site-level mean per "
+            f"site-condition cell; got {len(a1['site_condition_means'])}, "
+            f"expected {expected_rows}"
+        )
+
+    official_means = {
+        row["condition"]: _as_float(row["mean"], f"{row['condition']} official mean")
+        for row in a1["condition_means"]
+    }
+    profile_means = profiles.mean(axis=0)
+    for cond, official_mean in official_means.items():
+        profile_mean = _as_float(profile_means.loc[cond], f"{cond} site-profile mean")
+        if abs(profile_mean - official_mean) > _TOL:
+            raise ValueError(
+                f"A1 site-profile check failed for {cond}: "
+                f"profile_mean={profile_mean} official_mean={official_mean}"
+            )
+
+
+def _a1_ylim(summary_df, profiles) -> tuple[float, float]:
+    upper = max(
+        _as_float(summary_df["ci_high"].max(), "A1 max CI high"),
+        _as_float(profiles.max().max(), "A1 max site profile mean"),
+    )
+    return 0.0, upper * 1.12
+
+
 def render_a1_mean_ci(a1: dict, out_path: Path) -> None:
     _numerical_guard(a1)
-    df = condition_means_df(a1["condition_means"])
+    df = condition_means_df(
+        a1["condition_means"],
+        condition_order=CONDITION_ORDER,
+    )
+    profiles = site_condition_means_df(
+        a1["site_condition_means"],
+        condition_order=CONDITION_ORDER,
+    )
+    _site_profile_guard(a1, profiles)
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
     x = np.arange(len(CONDITION_ORDER))
@@ -88,24 +154,36 @@ def render_a1_mean_ci(a1: dict, out_path: Path) -> None:
     hi = df["ci_high"].to_numpy() - means
     colors = [CONDITION_PALETTE[c] for c in CONDITION_ORDER]
 
+    for site in SITE_ORDER:
+        y = profiles.loc[site].to_numpy()
+        ax.plot(
+            x, y, color="#8a8a8a", linewidth=1.0, alpha=0.45, zorder=1,
+        )
+        ax.scatter(
+            x, y, color="#8a8a8a", s=24, alpha=0.6, linewidth=0, zorder=2,
+        )
+
     ax.errorbar(
         x, means, yerr=[lo, hi], fmt="none",
-        ecolor="#444444", elinewidth=1.5, capsize=4, zorder=1,
+        ecolor="#333333", elinewidth=1.6, capsize=4, zorder=3,
     )
-    ax.scatter(x, means, c=colors, s=90, zorder=2, edgecolor="black", linewidth=0.6)
+    ax.scatter(x, means, c=colors, s=95, zorder=4, edgecolor="black", linewidth=0.6)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(CONDITION_ORDER)
+    ax.set_xticklabels(
+        [CONDITION_DISPLAY_LABELS[c] for c in CONDITION_ORDER]
+    )
     ax.set_xlabel("Condition")
     ax.set_ylabel("Weber contrast (site-level mean)")
-    ax.set_title("A1  ·  Weber contrast by condition (mean ± 95% CI)")
+    ax.set_title("A1  ·  Weber contrast by condition")
+    ax.set_ylim(*_a1_ylim(df, profiles))
     ax.grid(True, alpha=0.3, axis="y")
     ax.margins(x=0.08)
 
-    fig.text(0.5, 0.035, _omnibus_line(a1), ha="center", fontsize=9)
-    fig.text(0.5, 0.005, _provenance_line(a1), ha="center", fontsize=8, color="#555555")
+    fig.text(0.5, 0.045, _omnibus_line(a1), ha="center", fontsize=9)
+    fig.text(0.5, 0.015, _provenance_line(a1), ha="center", fontsize=8, color="#555555")
 
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.tight_layout(rect=(0, 0.09, 1, 1))
     fig.savefig(out_path, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
 
