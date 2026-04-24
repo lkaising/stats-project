@@ -113,7 +113,7 @@ Primary quantity: the `condition * site` interaction F-test. Treated as explorat
 
 **Interaction test:** F(12.0, 220.0) = 1.264003, p = 0.2416, partial η² = 0.064499.
 - Significant at α = 0.05: **False**
-- Interpretation: No evidence that the condition effect depends on site; this supports the pooled framing used in A1.
+- Interpretation: No evidence of a site-dependent condition effect was detected; this is consistent with the pooled framing used in A1.
 
 ## A3 — Condition-level repeatability (CV)
 

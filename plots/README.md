@@ -23,7 +23,6 @@ Required (the stage fails loud if any are missing):
 - `analysis/output/a1_results.json`
 - `analysis/output/a3_results.json`
 - `analysis/output/michelson_results.json`
-- `generator/output/synthetic_dataset.csv`
 
 Optional (enables additional figures if present):
 
@@ -39,12 +38,12 @@ Written to `plots/output/`:
 | `a1_posthoc_matrix.png` | `a1_results.json::posthoc` |
 | `a3_condition_cv_ci.png` | `a3_results.json::bootstrap_cis` + `a3_results.json::cv_matrix` |
 | `michelson_vs_weber.png` | `a1_results.json` + `michelson_results.json` |
-| `a2_interaction_profile.png` | `a2_results.json` + raw cell means (conditional) |
+| `a2_interaction_profile.png` | `a2_results.json::cell_means` + `a1_results.json::condition_means` (conditional) |
 
 The A2 figure is only produced when `a2_results.json` is present, contains an
-assessable interaction term, and the raw dataset yields a complete
-`(site × condition)` cell-means matrix. If any of those fail, the runner logs
-a skip reason and continues; the stage still exits 0.
+assessable interaction term, and exports a complete `(site × condition)`
+cell-means matrix. If any of those fail, the runner logs a skip reason and
+continues; the stage still exits 0.
 
 ## How to run
 

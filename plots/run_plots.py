@@ -4,7 +4,6 @@ Required inputs (fail loud if missing):
   - analysis/output/a1_results.json
   - analysis/output/a3_results.json
   - analysis/output/michelson_results.json
-  - generator/output/synthetic_dataset.csv
 
 Optional:
   - analysis/output/a2_results.json (enables A2 interaction figure)
@@ -27,7 +26,6 @@ from loader import (
     load_a2,
     load_a3,
     load_michelson,
-    load_raw_dataset,
 )
 from a1 import render_a1_mean_ci, render_a1_posthoc_matrix
 from a2 import render_a2_interaction
@@ -42,7 +40,6 @@ def main() -> int:
         a1 = load_a1()
         a3 = load_a3()
         michelson = load_michelson()
-        raw_df = load_raw_dataset()
     except (MissingArtifactError, ArtifactSchemaError) as exc:
         print(f"plots: required input error — {exc}", file=sys.stderr)
         return 1
@@ -60,7 +57,7 @@ def main() -> int:
     render_a3_condition_cv(a3, p_a3)
     render_michelson_vs_weber(a1, michelson, p_mich)
 
-    ok, reason = render_a2_interaction(a2, raw_df, p_a2)
+    ok, reason = render_a2_interaction(a2, a1, p_a2)
     if ok:
         a2_summary = f"A2 interaction figure written: {p_a2.name}"
     else:

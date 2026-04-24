@@ -81,6 +81,12 @@ def _site_condition_means(matrix):
     return out
 
 
+def _trial_cell_means(df, metric):
+    """Plot-ready descriptive cell means from the trial-level data."""
+    matrix = site_level_matrix(df, metric)
+    return _site_condition_means(matrix)
+
+
 def _condition_cv_point_estimates(matrix):
     out = []
     for cond in matrix.columns:
@@ -354,7 +360,7 @@ def run_a2(df):
         interaction_interpretation = (
             "Evidence that the condition effect depends on site (site-dependent performance)."
             if interaction_significant
-            else "No evidence that the condition effect depends on site; this supports the pooled framing used in A1."
+            else "No evidence of a site-dependent condition effect was detected; this is consistent with the pooled framing used in A1."
         )
     else:
         interaction_interpretation = (
@@ -375,6 +381,7 @@ def run_a2(df):
         "interaction_primary_assessable": interaction_assessable,
         "interaction_primary_significant": interaction_significant,
         "interaction_interpretation": interaction_interpretation,
+        "cell_means": _trial_cell_means(df, "weber"),
         "anova_table": table,
         "exploratory": True,
         "note": "A2 is exploratory given the single-subject design and 4 sites.",

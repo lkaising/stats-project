@@ -68,7 +68,8 @@ Written to `analysis/output/`:
   Friedman), nested `assumption_path` provenance, effect size, and
   Holm-corrected post-hoc rows.
 - `a1_posthoc.csv` — the A1 post-hoc rows in tabular form.
-- `a2_results.json` — full two-way ANOVA table with partial η².
+- `a2_results.json` — full two-way ANOVA table with partial η², plus
+  descriptive site-condition cell means for plotting provenance.
 - `a3_results.json` — A3 Friedman result (or descriptive fallback),
   per-condition observed CV point estimates, CV matrix, bootstrap metadata,
   and bootstrap CIs.

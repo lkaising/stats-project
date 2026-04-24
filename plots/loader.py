@@ -1,8 +1,8 @@
 """Artifact loading for the ``plots/`` layer.
 
-Centralizes all reads from ``analysis/output/`` and the raw dataset in
-``generator/output/``. Every loader performs an existence preflight and a
-minimal schema guard so downstream rendering code can assume a valid payload.
+Centralizes reads from ``analysis/output/``. Every loader performs an
+existence preflight and a minimal schema guard so downstream rendering code
+can assume a valid payload.
 """
 
 import json
@@ -14,7 +14,6 @@ import pandas as pd
 from config import (
     ANALYSIS_OUTPUT_DIR,
     CONDITION_ORDER,
-    GENERATOR_OUTPUT_DIR,
     SITE_ORDER,
 )
 
@@ -142,22 +141,6 @@ def load_assumption_checks() -> JsonDict | None:
     return _read_json("assumption_checks.json", required=False)
 
 
-def load_raw_dataset() -> pd.DataFrame:
-    path = GENERATOR_OUTPUT_DIR / "synthetic_dataset.csv"
-    if not path.exists():
-        raise MissingArtifactError(
-            f"Required raw dataset missing: {path}"
-        )
-    df = pd.read_csv(path)
-    needed = {"site", "condition", "weber", "michelson"}
-    missing = needed - set(df.columns)
-    if missing:
-        raise ArtifactSchemaError(
-            f"synthetic_dataset.csv missing columns: {sorted(missing)}"
-        )
-    return df
-
-
 def condition_means_df(
     condition_means: list,
     condition_order: list[str] | None = None,
@@ -185,6 +168,38 @@ def site_condition_means_df(
         index=SITE_ORDER,
         columns=condition_order or CONDITION_ORDER,
     )
+    if matrix.isna().any().any():
+        missing_count = int(matrix.isna().sum().sum())
+        raise ArtifactSchemaError(
+            f"{source} has {missing_count} missing site-condition cells"
+        )
+    return matrix
+
+
+def a2_cell_means_df(
+    cell_means: list,
+    condition_order: list[str] | None = None,
+) -> pd.DataFrame:
+    source = "a2_results.json::cell_means"
+    df = pd.DataFrame(cell_means)
+    needed = {"site", "condition", "mean"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ArtifactSchemaError(
+            f"{source} missing columns: {sorted(missing)}"
+        )
+    _assert_conditions_covered(df["condition"].astype(str).tolist(), source)
+    _assert_sites_covered(df["site"].astype(str).tolist(), source)
+    matrix = df.pivot(index="site", columns="condition", values="mean")
+    matrix = matrix.reindex(
+        index=SITE_ORDER,
+        columns=condition_order or CONDITION_ORDER,
+    )
+    expected_shape = (len(SITE_ORDER), len(condition_order or CONDITION_ORDER))
+    if matrix.shape != expected_shape:
+        raise ArtifactSchemaError(
+            f"{source} has shape {matrix.shape}; expected {expected_shape}"
+        )
     if matrix.isna().any().any():
         missing_count = int(matrix.isna().sum().sum())
         raise ArtifactSchemaError(
