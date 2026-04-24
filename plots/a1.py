@@ -37,6 +37,8 @@ _POSTHOC_MAGNITUDE_CMAP = mcolors.LinearSegmentedColormap.from_list(
     "a1_posthoc_magnitude",
     ["#f7fbff", "#d8e8f4", "#9ecae1"],
 )
+_POSTHOC_FIGSIZE = (7.6, 5.4)
+_POSTHOC_CELL_FONT_SIZE = 7.9
 
 
 def _as_float(value: object, label: str) -> float:
@@ -64,13 +66,13 @@ def _fmt_trimmed(x: float, digits: int = 3) -> str:
 
 def _fmt_p_holm(p: object) -> str:
     if p is None:
-        return "pH=n/a"
+        return "p_adj=n/a"
     p_float = _as_float(p, "Holm-adjusted p-value")
     if not np.isfinite(p_float):
-        return "pH=n/a"
+        return "p_adj=n/a"
     if p_float < 0.001:
-        return "pH<.001"
-    return f"pH={_fmt_trimmed(p_float)}"
+        return "p_adj<.001"
+    return f"p_adj={_fmt_trimmed(p_float)}"
 
 
 def _fmt_delta(value: float, label: str) -> str:
@@ -143,15 +145,14 @@ def _posthoc_caption(a1: dict, delta_label: str) -> str:
     n_sites = a1["n_sites"]
     if a1["path"] == "rm_anova":
         path_label = "Paired t-tests"
-        metric = "in Weber contrast"
+        delta_context = ""
     else:
         path_label = "Wilcoxon signed-rank tests"
-        metric = "from official post-hoc rows"
+        delta_context = " from official post-hoc rows"
     return (
-        f"{path_label} on site-level means, n={n_sites} sites; "
-        f"Holm-adjusted p-values. Cells show {delta_label}(row-column) "
-        f"{metric} and pH; shading tracks |{delta_label}|, "
-        "border marks Holm rejection."
+        f"{path_label} on site-level means (n={n_sites}); "
+        f"cells show {delta_label}(row−column){delta_context} and Holm-adjusted p_adj; "
+        f"shading tracks |{delta_label}|."
     )
 
 
@@ -351,7 +352,7 @@ def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
     n = len(CONDITION_ORDER)
     max_abs_delta = max(abs(row["delta"]) for row in plot_rows) if plot_rows else 0.0
 
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    fig, ax = plt.subplots(figsize=_POSTHOC_FIGSIZE)
 
     for i in range(n):
         rect = Rectangle(
@@ -387,8 +388,8 @@ def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
             f"{_fmt_p_holm(row['p_holm'])}",
             ha="center", va="center",
             color=_posthoc_text_color(fill),
-            fontsize=8.3,
-            linespacing=1.25,
+            fontsize=_POSTHOC_CELL_FONT_SIZE,
+            linespacing=1.18,
             fontweight="bold" if row["reject"] else "normal",
         )
 
@@ -417,7 +418,7 @@ def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
     fig.text(
         0.5, 0.04,
         _posthoc_caption(a1, delta_label),
-        ha="center", fontsize=8.3, color="#444444", wrap=True,
+        ha="center", fontsize=8.1, color="#444444", wrap=True,
     )
 
     fig.tight_layout(rect=(0, 0.12, 1, 0.96))
