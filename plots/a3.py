@@ -1,5 +1,6 @@
 """A3 — Condition-level repeatability (CV with bootstrap CIs)."""
 
+from numbers import Real
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -21,6 +22,12 @@ from loader import bootstrap_cis_df, cv_matrix_df
 
 _TOL = 1e-9
 _SITE_X_OFFSETS = np.linspace(-0.18, 0.18, len(SITE_ORDER))
+
+
+def _as_float(value: object, label: str) -> float:
+    if not isinstance(value, Real):
+        raise TypeError(f"{label} must be real-valued, got {type(value).__name__}")
+    return float(value)
 
 
 def _stat_line(a3: dict) -> str:
@@ -59,7 +66,10 @@ def _numerical_guard(cv_matrix: pd.DataFrame, point_df: pd.DataFrame) -> None:
     for cond in CONDITION_ORDER:
         stable_values = cv_matrix[cond].dropna().to_numpy(dtype=float)
         recomputed = float(np.mean(stable_values)) if stable_values.size else float("nan")
-        summary_point = float(point_df.loc[cond, "cv_point_estimate"])
+        summary_point = _as_float(
+            point_df.loc[cond, "cv_point_estimate"],
+            f"{cond} CV point estimate",
+        )
         if np.isnan(recomputed) and np.isnan(summary_point):
             continue
         if abs(recomputed - summary_point) > _TOL:
