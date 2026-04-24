@@ -4,16 +4,23 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from config import (
     CONDITION_ORDER,
     CONDITION_PALETTE,
     DPI,
     FIGSIZE,
+    SITE_ORDER,
+    SITE_PALETTE,
     fmt_num,
     fmt_p,
 )
-from loader import bootstrap_cis_df
+from loader import bootstrap_cis_df, cv_matrix_df
+
+
+_TOL = 1e-9
+_SITE_X_OFFSETS = np.linspace(-0.18, 0.18, len(SITE_ORDER))
 
 
 def _stat_line(a3: dict) -> str:
@@ -43,21 +50,63 @@ def _provenance_line(a3: dict) -> str:
     return "  ·  ".join(bits)
 
 
+def _per_condition_cv_df(per_condition_cv: list) -> pd.DataFrame:
+    df = pd.DataFrame(per_condition_cv).set_index("condition")
+    return df.reindex(CONDITION_ORDER)
+
+
+def _numerical_guard(cv_matrix: pd.DataFrame, point_df: pd.DataFrame) -> None:
+    for cond in CONDITION_ORDER:
+        stable_values = cv_matrix[cond].dropna().to_numpy(dtype=float)
+        recomputed = float(np.mean(stable_values)) if stable_values.size else float("nan")
+        summary_point = float(point_df.loc[cond, "cv_point_estimate"])
+        if np.isnan(recomputed) and np.isnan(summary_point):
+            continue
+        if abs(recomputed - summary_point) > _TOL:
+            raise ValueError(
+                f"A3 spot check failed for {cond}: "
+                f"summary_point={summary_point} mean_from_cv_matrix={recomputed}"
+            )
+
+
 def render_a3_condition_cv(a3: dict, out_path: Path) -> None:
-    df = bootstrap_cis_df(a3["bootstrap_cis"])
+    ci_df = bootstrap_cis_df(a3["bootstrap_cis"])
+    point_df = _per_condition_cv_df(a3["per_condition_cv"])
+    cv_matrix = cv_matrix_df(a3["cv_matrix"])
+    _numerical_guard(cv_matrix, point_df)
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
     x = np.arange(len(CONDITION_ORDER))
-    cv = df["cv_point_estimate"].to_numpy()
-    lo = cv - df["ci_low"].to_numpy()
-    hi = df["ci_high"].to_numpy() - cv
+    cv = point_df["cv_point_estimate"].to_numpy(dtype=float)
+    lo = cv - ci_df["ci_low"].to_numpy(dtype=float)
+    hi = ci_df["ci_high"].to_numpy(dtype=float) - cv
     colors = [CONDITION_PALETTE[c] for c in CONDITION_ORDER]
 
     ax.errorbar(
         x, cv, yerr=[lo, hi], fmt="none",
         ecolor="#444444", elinewidth=1.5, capsize=4, zorder=1,
     )
-    ax.scatter(x, cv, c=colors, s=90, zorder=2, edgecolor="black", linewidth=0.6)
+
+    legend_handles = []
+    for offset, site in zip(_SITE_X_OFFSETS, SITE_ORDER):
+        vals = cv_matrix.loc[site].to_numpy(dtype=float)
+        mask = ~np.isnan(vals)
+        if not mask.any():
+            continue
+        handle = ax.scatter(
+            x[mask] + offset,
+            vals[mask],
+            color=SITE_PALETTE[site],
+            s=42,
+            alpha=0.75,
+            zorder=2,
+            edgecolor="white",
+            linewidth=0.5,
+            label=site,
+        )
+        legend_handles.append(handle)
+
+    ax.scatter(x, cv, c=colors, s=90, zorder=3, edgecolor="black", linewidth=0.6)
 
     ax.set_xticks(x)
     ax.set_xticklabels(CONDITION_ORDER)
@@ -67,6 +116,8 @@ def render_a3_condition_cv(a3: dict, out_path: Path) -> None:
     ax.grid(True, alpha=0.3, axis="y")
     ax.margins(x=0.08)
     ax.set_ylim(bottom=0)
+    if legend_handles:
+        ax.legend(title="Site", loc="best", fontsize=8, title_fontsize=9)
 
     fig.text(0.5, 0.035, _stat_line(a3), ha="center", fontsize=9)
     fig.text(0.5, 0.005, _provenance_line(a3), ha="center", fontsize=8, color="#555555")

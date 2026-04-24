@@ -37,7 +37,7 @@ Written to `plots/output/`:
 | --- | --- |
 | `a1_condition_means_ci.png` | `a1_results.json::condition_means` |
 | `a1_posthoc_matrix.png` | `a1_results.json::posthoc` |
-| `a3_condition_cv_ci.png` | `a3_results.json` + `bootstrap_cis` |
+| `a3_condition_cv_ci.png` | `a3_results.json::bootstrap_cis` + `a3_results.json::cv_matrix` |
 | `michelson_vs_weber.png` | `a1_results.json` + `michelson_results.json` |
 | `a2_interaction_profile.png` | `a2_results.json` + raw cell means (conditional) |
 
@@ -64,3 +64,5 @@ The plots stage is also wired into `run_pipeline.py` as the final stage.
 - Captions surface the analysis pathway (RM-ANOVA vs. Friedman fallback,
   Greenhouse-Geisser correction, A3 inferential vs. descriptive mode) so the
   presentation layer stays consistent with the upstream analysis.
+- The A3 figure layers site-level CV context points from `cv_matrix` under the
+  condition-level point estimate and bootstrap CI summary.

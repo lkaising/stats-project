@@ -15,6 +15,7 @@ from config import (
     ANALYSIS_OUTPUT_DIR,
     CONDITION_ORDER,
     GENERATOR_OUTPUT_DIR,
+    SITE_ORDER,
 )
 
 
@@ -71,6 +72,14 @@ def _assert_conditions_covered(conditions, source: str) -> None:
         )
 
 
+def _assert_sites_covered(sites, source: str) -> None:
+    missing = [s for s in SITE_ORDER if s not in sites]
+    if missing:
+        raise ArtifactSchemaError(
+            f"{source}: sites {missing} absent; cannot reindex to canonical order"
+        )
+
+
 def load_a1() -> JsonDict:
     data = _read_json("a1_results.json", required=True)
     _require_keys(
@@ -88,12 +97,15 @@ def load_a3() -> JsonDict:
     data = _read_json("a3_results.json", required=True)
     _require_keys(
         data,
-        ["per_condition_cv", "bootstrap_cis", "a3_mode",
+        ["per_condition_cv", "bootstrap_cis", "cv_matrix", "a3_mode",
          "unstable_cells", "usable_site_count", "bootstrap"],
         "a3_results.json",
     )
+    point_conds = [row["condition"] for row in data["per_condition_cv"]]
+    _assert_conditions_covered(point_conds, "a3_results.json::per_condition_cv")
     conds = [row["condition"] for row in data["bootstrap_cis"]]
     _assert_conditions_covered(conds, "a3_results.json::bootstrap_cis")
+    cv_matrix_df(data["cv_matrix"])
     return data
 
 
@@ -152,3 +164,24 @@ def condition_means_df(condition_means: list) -> pd.DataFrame:
 def bootstrap_cis_df(bootstrap_cis: list) -> pd.DataFrame:
     df = pd.DataFrame(bootstrap_cis).set_index("condition")
     return df.reindex(CONDITION_ORDER)
+
+
+def cv_matrix_df(cv_matrix: JsonDict) -> pd.DataFrame:
+    source = "a3_results.json::cv_matrix"
+    if not isinstance(cv_matrix, dict):
+        raise ArtifactSchemaError(
+            f"{source} must be a mapping of condition -> site -> value"
+        )
+
+    _assert_conditions_covered(cv_matrix.keys(), source)
+    for cond in CONDITION_ORDER:
+        site_map = cv_matrix[cond]
+        if not isinstance(site_map, dict):
+            raise ArtifactSchemaError(
+                f"{source}[{cond!r}] must be a mapping of site -> value"
+            )
+        _assert_sites_covered(site_map.keys(), f"{source}[{cond!r}]")
+
+    df = pd.DataFrame(cv_matrix)
+    _assert_sites_covered(df.index, source)
+    return df.reindex(index=SITE_ORDER, columns=CONDITION_ORDER)
