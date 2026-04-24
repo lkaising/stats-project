@@ -15,7 +15,6 @@ from matplotlib.patches import Rectangle
 import numpy as np
 
 from config import (
-    # A1_MAIN_FIGURE_CONDITION_ORDER,
     CONDITION_DISPLAY_LABELS,
     CONDITION_ORDER,
     CONDITION_PALETTE,

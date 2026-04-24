@@ -59,7 +59,6 @@ The plots stage is also wired into `run_pipeline.py` as the final stage.
 ## Conventions
 
 - Canonical condition order (locked in v1): `["850", "850_940", "940", "940_1050", "1050"]`.
-- A1 main-figure display order: `["850", "940", "1050", "850_940", "940_1050"]`.
 - Canonical site order: `["dorsal_hand_L", "dorsal_hand_R", "antecubital_L", "antecubital_R"]`.
 - Library: matplotlib only.
 - Captions surface the analysis pathway (RM-ANOVA vs. Friedman fallback,
