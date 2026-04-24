@@ -51,7 +51,7 @@ def _stat_line(a3: dict) -> str:
         fr = a3["friedman"]
         return (
             "Friedman test on per-site CVs: "
-            f"Q={fmt_num(fr['Q'], 2)}, df={fr['dof']:g}, "
+            f"χ²({fr['dof']:g})={fmt_num(fr['Q'], 2)}, "
             f"{_fmt_p_compact(fr['p'])}, Kendall's W={fmt_num(fr['kendalls_w'], 3)}"
         )
     reason = a3.get("fallback_reason") or "unspecified"
@@ -61,10 +61,10 @@ def _stat_line(a3: dict) -> str:
 def _provenance_line(a3: dict) -> str:
     ci_level = int(a3["bootstrap"]["ci"] * 100)
     return (
-        "Colored points = condition-level CV (mean across sites); "
+        "Colored points = mean CV across sites; "
         f"error bars = bootstrap {ci_level}% CI; "
-        "gray lines = site CV profiles; "
-        "lower CV = greater repeatability."
+        "gray lines = site CV profiles. "
+        "Lower CV = greater repeatability."
     )
 
 
