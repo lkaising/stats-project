@@ -11,6 +11,7 @@ from pathlib import Path
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import numpy as np
 
 from config import (
@@ -28,6 +29,14 @@ from loader import condition_means_df, site_condition_means_df
 
 
 _TOL = 1e-9
+_POSTHOC_DIAGONAL_FILL = "#ededed"
+_POSTHOC_EMPTY_FILL = "#ffffff"
+_POSTHOC_REJECT_EDGE = "#265f85"
+_POSTHOC_NONREJECT_EDGE = "#b8b8b8"
+_POSTHOC_MAGNITUDE_CMAP = mcolors.LinearSegmentedColormap.from_list(
+    "a1_posthoc_magnitude",
+    ["#f7fbff", "#d8e8f4", "#9ecae1"],
+)
 
 
 def _as_float(value: object, label: str) -> float:
@@ -51,6 +60,154 @@ def _fmt_trimmed(x: float, digits: int = 3) -> str:
     if text.startswith("-0."):
         return "-" + text[2:]
     return text
+
+
+def _fmt_p_holm(p: object) -> str:
+    if p is None:
+        return "pH=n/a"
+    p_float = _as_float(p, "Holm-adjusted p-value")
+    if not np.isfinite(p_float):
+        return "pH=n/a"
+    if p_float < 0.001:
+        return "pH<.001"
+    return f"pH={_fmt_trimmed(p_float)}"
+
+
+def _fmt_delta(value: float, label: str) -> str:
+    return f"{label}={value:+.3f}"
+
+
+def _posthoc_difference_field(a1: dict) -> tuple[str, str]:
+    if a1["path"] == "rm_anova":
+        return "mean_diff", "Δ"
+    if a1["path"] == "friedman":
+        return "median_diff", "Δmed"
+    raise ValueError(f"Unsupported A1 post-hoc path: {a1['path']!r}")
+
+
+def _unordered_pair(a: str, b: str) -> frozenset[str]:
+    if a == b:
+        raise ValueError(f"A1 post-hoc row compares {a!r} to itself")
+    return frozenset((a, b))
+
+
+def _build_posthoc_pair_lookup(posthoc_rows: list, condition_order: list[str]) -> dict:
+    known_conditions = set(condition_order)
+    expected_pairs = {
+        _unordered_pair(a, b)
+        for i, a in enumerate(condition_order)
+        for b in condition_order[i + 1:]
+    }
+    by_pair = {}
+    for row in posthoc_rows:
+        a = row.get("a")
+        b = row.get("b")
+        unknown = sorted({a, b} - known_conditions)
+        if unknown:
+            raise ValueError(f"A1 post-hoc row uses unknown condition key(s): {unknown}")
+        pair = _unordered_pair(a, b)
+        if pair in by_pair:
+            labels = sorted(pair)
+            raise ValueError(f"A1 post-hoc has duplicate row for pair: {labels}")
+        by_pair[pair] = row
+
+    missing = expected_pairs - set(by_pair)
+    extra = set(by_pair) - expected_pairs
+    if missing:
+        labels = [sorted(pair) for pair in sorted(missing, key=lambda p: sorted(p))]
+        raise ValueError(f"A1 post-hoc missing expected pair(s): {labels}")
+    if extra:
+        labels = [sorted(pair) for pair in sorted(extra, key=lambda p: sorted(p))]
+        raise ValueError(f"A1 post-hoc has unexpected pair(s): {labels}")
+    return by_pair
+
+
+def _oriented_posthoc_delta(
+    row: dict,
+    row_condition: str,
+    column_condition: str,
+    field: str,
+) -> float:
+    delta = _as_float(row[field], f"A1 post-hoc {field}")
+    if row["a"] == row_condition and row["b"] == column_condition:
+        return delta
+    if row["a"] == column_condition and row["b"] == row_condition:
+        return -delta
+    raise ValueError(
+        "A1 post-hoc row does not match requested comparison: "
+        f"{row.get('a')} vs {row.get('b')} for {row_condition} vs {column_condition}"
+    )
+
+
+def _posthoc_caption(a1: dict, delta_label: str) -> str:
+    n_sites = a1["n_sites"]
+    if a1["path"] == "rm_anova":
+        path_label = "Paired t-tests"
+        metric = "in Weber contrast"
+    else:
+        path_label = "Wilcoxon signed-rank tests"
+        metric = "from official post-hoc rows"
+    return (
+        f"{path_label} on site-level means, n={n_sites} sites; "
+        f"Holm-adjusted p-values. Cells show {delta_label}(row-column) "
+        f"{metric} and pH; shading tracks |{delta_label}|, "
+        "border marks Holm rejection."
+    )
+
+
+def _posthoc_text_color(fill: str) -> str:
+    r, g, b = mcolors.to_rgb(fill)
+    luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return "white" if luminance < 0.45 else "#1f1f1f"
+
+
+def _posthoc_plot_rows(a1: dict) -> list[dict]:
+    for condition in CONDITION_ORDER:
+        if condition not in CONDITION_DISPLAY_LABELS:
+            raise ValueError(f"Missing display label for A1 condition: {condition}")
+
+    field, delta_label = _posthoc_difference_field(a1)
+    by_pair = _build_posthoc_pair_lookup(a1["posthoc"], CONDITION_ORDER)
+    rows = []
+    n = len(CONDITION_ORDER)
+    for i, row_condition in enumerate(CONDITION_ORDER):
+        for j, column_condition in enumerate(CONDITION_ORDER):
+            if i >= j:
+                continue
+            pair = _unordered_pair(row_condition, column_condition)
+            row = by_pair[pair]
+            for required in (field, "p_holm", "reject_holm_at_0.05"):
+                if required not in row:
+                    raise ValueError(
+                        f"A1 post-hoc row {row['a']} vs {row['b']} "
+                        f"missing {required!r}"
+                    )
+            delta = _oriented_posthoc_delta(row, row_condition, column_condition, field)
+            p_holm = row["p_holm"]
+            reject = row["reject_holm_at_0.05"]
+            if not isinstance(reject, bool):
+                raise TypeError(
+                    "A1 post-hoc reject_holm_at_0.05 must be boolean for "
+                    f"{row['a']} vs {row['b']}"
+                )
+            rows.append(
+                {
+                    "i": i,
+                    "j": j,
+                    "delta": delta,
+                    "delta_label": delta_label,
+                    "p_holm": p_holm,
+                    "reject": reject,
+                }
+            )
+
+    expected_count = n * (n - 1) // 2
+    if len(rows) != expected_count:
+        raise ValueError(
+            f"A1 post-hoc matrix would draw {len(rows)} comparisons; "
+            f"expected {expected_count}"
+        )
+    return rows
 
 
 def _omnibus_line(a1: dict) -> str:
@@ -189,57 +346,80 @@ def render_a1_mean_ci(a1: dict, out_path: Path) -> None:
 
 
 def render_a1_posthoc_matrix(a1: dict, out_path: Path) -> None:
-    by_pair = {}
-    for row in a1["posthoc"]:
-        by_pair[(row["a"], row["b"])] = row
-        by_pair[(row["b"], row["a"])] = row
-
+    plot_rows = _posthoc_plot_rows(a1)
+    _, delta_label = _posthoc_difference_field(a1)
     n = len(CONDITION_ORDER)
-    reject_grid = np.full((n, n), np.nan)
-    for i, a in enumerate(CONDITION_ORDER):
-        for j, b in enumerate(CONDITION_ORDER):
-            if i == j:
-                continue
-            row = by_pair.get((a, b))
-            if row is None:
-                continue
-            reject_grid[i, j] = 1.0 if row["reject_holm_at_0.05"] else 0.0
+    max_abs_delta = max(abs(row["delta"]) for row in plot_rows) if plot_rows else 0.0
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    cmap = mcolors.ListedColormap(["#f0f0f0", "#4a6fa5"])
-    ax.imshow(np.nan_to_num(reject_grid, nan=-1), cmap=cmap, vmin=0, vmax=1)
 
-    for i, a in enumerate(CONDITION_ORDER):
-        for j, b in enumerate(CONDITION_ORDER):
-            if i == j:
-                ax.text(j, i, "—", ha="center", va="center",
-                        color="#888888", fontsize=11)
-                continue
-            row = by_pair.get((a, b))
-            if row is None:
-                continue
-            p_holm = row["p_holm"]
-            reject = row["reject_holm_at_0.05"]
-            color = "white" if reject else "black"
-            weight = "bold" if reject else "normal"
-            label = "p<0.001" if p_holm < 0.001 else f"p={p_holm:.3f}"
-            ax.text(j, i, label, ha="center", va="center",
-                    color=color, fontsize=8.5, fontweight=weight)
+    for i in range(n):
+        rect = Rectangle(
+            (i - 0.5, i - 0.5), 1, 1,
+            facecolor=_POSTHOC_DIAGONAL_FILL,
+            edgecolor="#d0d0d0",
+            linewidth=0.9,
+        )
+        ax.add_patch(rect)
+        ax.text(
+            i, i, "—",
+            ha="center", va="center",
+            color="#777777", fontsize=12,
+        )
+
+    for row in plot_rows:
+        i = row["i"]
+        j = row["j"]
+        relative_delta = abs(row["delta"]) / max_abs_delta if max_abs_delta else 0.0
+        fill = mcolors.to_hex(_POSTHOC_MAGNITUDE_CMAP(0.16 + 0.68 * relative_delta))
+        edgecolor = _POSTHOC_REJECT_EDGE if row["reject"] else _POSTHOC_NONREJECT_EDGE
+        linewidth = 1.6 if row["reject"] else 1.0
+        rect = Rectangle(
+            (j - 0.5, i - 0.5), 1, 1,
+            facecolor=fill,
+            edgecolor=edgecolor,
+            linewidth=linewidth,
+        )
+        ax.add_patch(rect)
+        ax.text(
+            j, i,
+            f"{_fmt_delta(row['delta'], row['delta_label'])}\n"
+            f"{_fmt_p_holm(row['p_holm'])}",
+            ha="center", va="center",
+            color=_posthoc_text_color(fill),
+            fontsize=8.3,
+            linespacing=1.25,
+            fontweight="bold" if row["reject"] else "normal",
+        )
 
     ax.set_xticks(range(n))
     ax.set_yticks(range(n))
-    ax.set_xticklabels(CONDITION_ORDER, rotation=20)
-    ax.set_yticklabels(CONDITION_ORDER)
-    ax.set_title("A1  ·  Holm-corrected pairwise comparisons")
+    ax.set_xticklabels(
+        [CONDITION_DISPLAY_LABELS[c] for c in CONDITION_ORDER],
+        rotation=20,
+        ha="left",
+    )
+    ax.set_yticklabels([CONDITION_DISPLAY_LABELS[c] for c in CONDITION_ORDER])
+    ax.xaxis.tick_top()
+    ax.tick_params(
+        axis="x", top=True, bottom=False, labeltop=True, labelbottom=False,
+        length=0, pad=5,
+    )
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlim(-0.5, n - 0.5)
+    ax.set_ylim(n - 0.5, -0.5)
+    ax.set_aspect("equal")
+    ax.set_facecolor(_POSTHOC_EMPTY_FILL)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_title("A1  ·  Holm-corrected post-hoc comparisons", pad=34)
 
-    path_label = "RM-ANOVA paired t-tests" if a1["path"] == "rm_anova" else "Wilcoxon signed-rank"
     fig.text(
-        0.5, 0.03,
-        f"{path_label}  ·  Holm correction  ·  α={a1['omnibus']['alpha']}  ·  "
-        "filled = reject H₀",
-        ha="center", fontsize=9,
+        0.5, 0.04,
+        _posthoc_caption(a1, delta_label),
+        ha="center", fontsize=8.3, color="#444444", wrap=True,
     )
 
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.tight_layout(rect=(0, 0.12, 1, 0.96))
     fig.savefig(out_path, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
