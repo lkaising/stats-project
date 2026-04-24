@@ -30,7 +30,8 @@ from loader import ArtifactSchemaError, a2_cell_means_df, condition_means_df
 
 
 _TOL = 1e-9
-_A1_SHARED_YMAX = 0.20
+_A2_PRESENTATION_YMIN = 0.05
+_A2_PRESENTATION_YMAX = 0.20
 
 _SITE_LABELS = {
     "dorsal_hand_L": "DH-L",
@@ -103,13 +104,22 @@ def _guard_a1_a2_consistency(cell_means, pooled_means: np.ndarray) -> None:
 
 
 def _a2_ylim(cell_means, pooled_means: np.ndarray) -> tuple[float, float]:
+    observed_min = min(
+        float(cell_means.min().min()),
+        float(np.min(pooled_means)),
+    )
     observed_max = max(
         float(cell_means.max().max()),
         float(np.max(pooled_means)),
     )
-    if observed_max <= _A1_SHARED_YMAX:
-        return 0.0, _A1_SHARED_YMAX
-    return 0.0, observed_max * 1.1
+
+    if observed_min >= _A2_PRESENTATION_YMIN and observed_max <= _A2_PRESENTATION_YMAX:
+        return _A2_PRESENTATION_YMIN, _A2_PRESENTATION_YMAX
+
+    span = max(observed_max - observed_min, 1e-9)
+    lower = max(0.0, observed_min - 0.12 * span)
+    upper = observed_max + 0.12 * span
+    return lower, upper
 
 
 def _fmt_df(value) -> str:
@@ -171,7 +181,7 @@ def render_a2_interaction(
     ax.set_xticks(x)
     ax.set_xticklabels(xlabels)
     ax.set_xlabel("Condition")
-    ax.set_ylabel("Weber contrast (descriptive mean)")
+    ax.set_ylabel("Weber contrast (site-condition mean)")
     title = "A2 · Condition × site interaction"
     if a2.get("exploratory", True):
         title += " (exploratory)"
@@ -179,18 +189,10 @@ def render_a2_interaction(
     ax.set_ylim(*_a2_ylim(cell_means, pooled_means))
     ax.grid(True, alpha=0.3, axis="y")
     ax.margins(x=0.06)
-    site_legend = ax.legend(
-        handles=site_handles,
-        title="Site profiles",
-        loc="upper right",
-        fontsize=8,
-        title_fontsize=9,
-    )
-    ax.add_artist(site_legend)
     ax.legend(
-        handles=[reference_line],
-        title="Reference",
-        loc="lower left",
+        handles=site_handles + [reference_line],
+        title="Site profiles / reference",
+        loc="upper right",
         fontsize=8,
         title_fontsize=9,
     )
